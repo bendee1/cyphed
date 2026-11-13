@@ -11,7 +11,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -52,6 +55,8 @@ internal static class MouseHelper
     [DllImport("user32.dll")]
     static extern int GetMessageW(out MSG msg, IntPtr hWnd, uint min, uint max);
     [DllImport("user32.dll")]
+    static extern bool PeekMessageW(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
+    [DllImport("user32.dll")]
     static extern bool PostThreadMessageW(uint threadId, uint msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")]
     static extern short GetAsyncKeyState(int vKey);
@@ -75,10 +80,10 @@ internal static class MouseHelper
 
     static int Main()
     {
+        // Ce processus ne fait que répondre au crochet : il passe avant les autres pour que la souris n'attende jamais.
+        try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High; } catch { }
+        Thread.CurrentThread.Priority = ThreadPriority.Highest;
         uint mainThread = GetCurrentThreadId();
-        proc = OnMouse;
-        hook = SetWindowsHookExW(WH_MOUSE_LL, proc, GetModuleHandleW(IntPtr.Zero), 0);
-        if (hook == IntPtr.Zero) return 2;
 
         var writer = new Thread(WriteLoop);
         writer.IsBackground = true;
@@ -87,8 +92,21 @@ internal static class MouseHelper
         reader.IsBackground = true;
         reader.Start();
 
-        outbox.Add("ready");
+        // Tout préparer AVANT de poser le crochet : compilation du rappel, structures, verrou, file.
+        // Sinon le premier mouvement de souris attend ce travail (lent juste après une installation) et la souris gèle.
+        proc = OnMouse;
+        RuntimeHelpers.PrepareDelegate(proc);
+        RuntimeHelpers.PrepareMethod(typeof(MouseHelper).GetMethod("OnMouse", BindingFlags.NonPublic | BindingFlags.Static).MethodHandle);
+        RuntimeHelpers.PrepareMethod(typeof(MouseHelper).GetMethod("Matches", BindingFlags.NonPublic | BindingFlags.Static).MethodHandle);
+        Marshal.SizeOf(typeof(MSLLHOOKSTRUCT));
+        lock (Gate) { Matches(4); }
+        GetAsyncKeyState(0x11);
         MSG msg;
+        PeekMessageW(out msg, IntPtr.Zero, 0, 0, 0); // crée la file de messages du fil avant le crochet
+
+        hook = SetWindowsHookExW(WH_MOUSE_LL, proc, GetModuleHandleW(IntPtr.Zero), 0);
+        if (hook == IntPtr.Zero) return 2;
+        outbox.Add("ready");
         while (GetMessageW(out msg, IntPtr.Zero, 0, 0) > 0) { }
         UnhookWindowsHookEx(hook);
         return 0;

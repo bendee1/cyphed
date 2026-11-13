@@ -1,6 +1,6 @@
 {
   "name": "cyphed",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "private": true,
   "description": "Voice dictation for Windows: talk, and clean text appears where your cursor is.",
   "type": "module",
@@ -92,7 +92,8 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Cyphed"
+      "shortcutName": "Cyphed",
+      "include": "scripts/installer.nsh"
     },
     "publish": {
       "provider": "github",

@@ -17,9 +17,10 @@ export function readyUpdate(): string | null {
   return ready
 }
 
-/** Ferme Cyphed, installe la version prête en silence et relance. Ne fait rien si aucune n'est prête. */
+/** Ferme Cyphed, installe la version prête (fenêtre de progression seule) et relance. Ne fait rien si aucune n'est prête. */
 export function installUpdate(): void {
-  if (ready) autoUpdater.quitAndInstall(true, true)
+  // Pas silencieux : l'installeur montre sa barre de progression (scripts/installer.nsh saute les autres pages) puis relance Cyphed.
+  if (ready) autoUpdater.quitAndInstall(false, true)
 }
 
 export function startAutoUpdates(onReady: (version: string) => void): { installNow: () => void } {
