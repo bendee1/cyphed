@@ -307,7 +307,7 @@ export const en: Record<TextKey, string> = {
   'set.voice.eyebrow': 'Voices',
   'set.voice.title': 'Read aloud and assistant',
   'set.voice.lire': 'Read-aloud voice',
-  'set.voice.lire.hint': 'For Read, Summarize and Explain. Default: Marie (Voxtral). Estelle: Kyutai’s Pocket TTS (CC BY 4.0), reads on this PC and sends nothing.',
+  'set.voice.lire.hint': 'For Read, Summarize and Explain. Default: Marie (Voxtral 3). Voices in your interface language come first.',
   'set.voice.assistant': 'Assistant voice',
   'set.voice.assistant.hint': 'For the assistant. Default: Paul (Voxtral). {error}',
   'set.voice.reload': 'Reload voices',

@@ -36,7 +36,7 @@ I built it for myself, to have a dictation tool I can read, fix and extend, and 
 - **Knows where you write.** Reads the text around your cursor (Windows UI Automation) so new text joins the sentence correctly, adapts the tone per app (email, chat, code), never reads password fields.
 - **Your words.** Personal dictionary, expansions (type less, say a trigger), and it learns from the corrections you make in the history.
 - **Rewrites.** Apply "Polish", "Write a prompt" or your own instructions to the selected text with a shortcut, or after every dictation. A voice command mode applies a spoken instruction to your selection.
-- **Read aloud.** Select text or a screen area: Cyphed reads it, summarizes or explains it, with Mistral voices (French Marie, Manon, Léa, Camille and many more) or a local French voice that works offline.
+- **Read aloud.** Select text or a screen area: Cyphed reads it, summarizes or explains it, with Mistral voices (French Marie, Manon, Léa, Camille and many more) or ElevenLabs.
 - **Never loses a dictation.** If the network drops, the audio is kept for 7 days and one click retries it.
 - **Stats.** Words per day, words per minute, streaks, which apps you dictate in.
 - **French and English** interface.
@@ -68,7 +68,7 @@ Cyphed is local-first, and only talks to the services you configure:
 |---|---|
 | Audio of a dictation | Your speech-to-text engine (Deepgram by default, or ElevenLabs, or Mistral Voxtral) |
 | Dictated text, the text around the cursor, your dictionary | Anthropic (Claude Haiku) for cleanup, or the OpenAI-compatible provider you chose (nothing leaves the PC with a local model). Never the app name or window title. Turn context reading off in Settings |
-| Text to read aloud | Nothing with the local voice; Mistral or ElevenLabs if you pick them |
+| Text to read aloud | Mistral or ElevenLabs, the voice you pick |
 | Keys, history, audio, notes | Stay on your PC (`%APPDATA%\cyphed`). No telemetry |
 | Version check | GitHub, a few times a day, to download updates from this repository's releases |
 
@@ -93,7 +93,7 @@ Build the Windows app and installer (unsigned, so SmartScreen will warn):
 npm run dist
 ```
 
-The first build prepares the offline voice (about 1 GB, needs [uv](https://docs.astral.sh/uv/)).
+Optional, when running from source: `npm run build:voice` prepares an offline French voice (about 1 GB, needs [uv](https://docs.astral.sh/uv/)). It is not part of the installer.
 
 ## Development
 

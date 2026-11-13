@@ -17,7 +17,7 @@ If a call is not declared in `src/shared/` and exposed by the preload of that wi
 |---|---|
 | main | Lifecycle, shortcuts (keyboard and mouse), speech to text, cleanup, command mode, Win32 paste, SQLite, tray, windows, OCR, vision, text to speech |
 | `uia-helper.exe` | Reads the focused text field with UI Automation: text before and after the cursor, selection, editable, password. No network, no disk writes |
-| `pocket-serve.py` | Offline voice for "Read" (Pocket TTS by Kyutai), a self-contained Python shipped with the installer, started on first use, stopped after 10 idle minutes |
+| `pocket-serve.py` | Offline voice for "Read" (Pocket TTS by Kyutai), only when running from source (`npm run build:voice` or `CYPHED_VOICE_DIR`), not in the installer; started on first use, stopped after 10 idle minutes |
 | renderer `bar` | Microphone (raw PCM), the dictation badge and its menus |
 | renderer `hub` | Dictations, Stats, Dictionary, Expansions, Style, Rewrites, Notes, Read aloud, Settings |
 | renderer `capture` | Screen area picker, created on demand |

@@ -30,7 +30,7 @@ Je l'ai construit pour moi, pour avoir un outil de dictée que je peux lire, cor
 - **Sait où tu écris** : lit le texte autour du curseur (UI Automation de Windows) pour bien raccorder la phrase, adapte le ton selon l'appli (mail, message, code), ne lit jamais un champ mot de passe.
 - **Tes mots** : dictionnaire perso, abréviations, et il apprend des corrections faites dans l'historique.
 - **Transformations** : « Peaufiner », « Écrire un prompt » ou tes propres consignes sur le texte sélectionné, par raccourci ou après chaque dictée. Un mode commande applique une consigne dictée à ta sélection.
-- **Lire** : une sélection ou une zone de l'écran, lue, résumée ou expliquée, avec les voix de Mistral (Marie, Manon, Léa, Camille en français, et bien d'autres) ou une voix française locale qui marche hors ligne.
+- **Lire** : une sélection ou une zone de l'écran, lue, résumée ou expliquée, avec les voix de Mistral (Marie, Manon, Léa, Camille en français, et bien d'autres) ou d'ElevenLabs.
 - **Aucune dictée perdue** : si le réseau coupe, l'audio est gardé 7 jours et un clic la refait.
 - **Statistiques** : mots par jour, mots par minute, séries, applis où tu dictes.
 - **Interface en français et en anglais.**
@@ -41,7 +41,7 @@ Je l'ai construit pour moi, pour avoir un outil de dictée que je peux lire, cor
 |---|---|
 | Audio d'une dictée | Ton moteur de transcription (Deepgram par défaut, ElevenLabs ou Mistral Voxtral) |
 | Texte dicté, texte autour du curseur, dictionnaire | Anthropic (Claude Haiku) pour le nettoyage, ou le fournisseur compatible OpenAI que tu as choisi (rien ne sort avec un modèle local). Jamais le nom de l'appli ni le titre de la fenêtre. La lecture du contexte se coupe dans Réglages |
-| Texte à lire | Rien avec la voix locale ; Mistral ou ElevenLabs si tu les choisis |
+| Texte à lire | Mistral ou ElevenLabs, selon la voix choisie |
 | Clés, historique, audio, notes | Restent sur ton PC (`%APPDATA%\cyphed`). Aucune télémétrie |
 | Recherche de mise à jour | GitHub, quelques fois par jour, pour télécharger les nouvelles versions publiées ici |
 
@@ -60,7 +60,7 @@ npm run dev
 
 Ouvre **Réglages** dans le Hub, colle tes clés, puis appuie sur `Ctrl + Maj + Espace` dans n'importe quel champ de texte et parle. Les clés peuvent aussi venir des variables d'environnement `DEEPGRAM_API_KEY` et `ANTHROPIC_API_KEY`.
 
-Construire l'application et l'installeur (non signés : SmartScreen avertit) : `npm run dist`. La première fois, la voix hors ligne est préparée (environ 1 Go, il faut [uv](https://docs.astral.sh/uv/)).
+Construire l'application et l'installeur (non signés : SmartScreen avertit) : `npm run dist`. En option, depuis les sources : `npm run build:voice` prépare une voix française hors ligne (environ 1 Go, il faut [uv](https://docs.astral.sh/uv/)) ; elle n'est pas dans l'installeur.
 
 ## Développement
 

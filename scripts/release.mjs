@@ -25,7 +25,6 @@ try {
 
 run('npm run check')
 run('npm run build:native')
-run('npm run build:voice')
 run('npx electron-vite build')
 run('npx electron-builder --win --config.directories.output=release --publish never')
 

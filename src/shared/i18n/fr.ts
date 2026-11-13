@@ -309,7 +309,7 @@ export const fr = {
   'set.voice.eyebrow': 'Voix',
   'set.voice.title': 'Lire et assistant',
   'set.voice.lire': 'Voix Lire',
-  'set.voice.lire.hint': 'Pour Lire, Résumer et Expliquer. Par défaut : Marie (Voxtral). Estelle : Pocket TTS de Kyutai (CC BY 4.0), lit sur ce PC sans rien envoyer.',
+  'set.voice.lire.hint': 'Pour Lire, Résumer et Expliquer. Par défaut : Marie (Voxtral 3). Les voix françaises Marie, Manon, Léa et Camille sont en tête de liste.',
   'set.voice.assistant': 'Voix assistant',
   'set.voice.assistant.hint': 'Pour l’assistant. Par défaut : Paul (Voxtral). {error}',
   'set.voice.reload': 'Recharger les voix',
