@@ -93,7 +93,9 @@ export async function createBarWindow(preload: string): Promise<BrowserWindow> {
     }
   })
   win.setAlwaysOnTop(true, 'screen-saver')
-  win.setIgnoreMouseEvents(true, { forward: true })
+  // Sans `forward` : Electron poserait un crochet souris global dans le fil principal (gel de la souris
+  // dès que Cyphed est occupé). Le survol est suivi par ipc/bar.ts.
+  win.setIgnoreMouseEvents(true)
   await loadPage(win, 'bar')
   return win
 }

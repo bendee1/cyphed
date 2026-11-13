@@ -1,6 +1,6 @@
 {
   "name": "cyphed",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "Voice dictation for Windows: talk, and clean text appears where your cursor is.",
   "type": "module",

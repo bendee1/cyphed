@@ -31,6 +31,9 @@ const api: BarPreloadApi = {
   setInteractive(interactive) {
     ipcRenderer.send('bar:interactive', Boolean(interactive))
   },
+  setHitRect(rect) {
+    ipcRenderer.send('bar:hit-rect', rect)
+  },
   toggleDictation() {
     ipcRenderer.send('bar:toggle')
   },

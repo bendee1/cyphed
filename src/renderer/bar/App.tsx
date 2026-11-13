@@ -75,6 +75,30 @@ export function BarApp() {
   const [tf, setTf] = useState<BarTransforms>({ transforms: [], auto: '' })
   const [lastAuto, setLastAuto] = useState('')
   const leaveTimer = useRef(0)
+  const dockRef = useRef<HTMLDivElement | null>(null)
+
+  // Zone active envoyée au processus principal, qui suit le curseur sans crochet souris.
+  // Hors repos (dictée, traitement) la pilule ne s'ouvre pas : pas de zone, la barre laisse tout passer.
+  useEffect(() => {
+    const dock = dockRef.current
+    if (!dock) return
+    if (!idle) {
+      window.cyphed?.setHitRect(null)
+      return
+    }
+    const send = (): void => {
+      const r = dock.getBoundingClientRect()
+      window.cyphed?.setHitRect({ x: r.left, y: r.top, width: r.width, height: r.height })
+    }
+    send()
+    const observer = new ResizeObserver(send)
+    observer.observe(dock)
+    window.addEventListener('resize', send)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', send)
+    }
+  }, [idle])
 
   const interactive = useCallback((on: boolean) => {
     window.cyphed?.setInteractive(on)
@@ -145,7 +169,7 @@ export function BarApp() {
 
   return (
     <div className="shell visible">
-      <div className="dock" onPointerEnter={enter} onPointerLeave={leave}>
+      <div className="dock" ref={dockRef} onPointerEnter={enter} onPointerLeave={leave}>
         {readMenu && expanded ? (
           <div className="menu" role="menu" aria-label={t('barui.read')}>
             {speaking ? (

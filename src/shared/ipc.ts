@@ -4,6 +4,7 @@ export const IPC = {
   barState: 'bar:state',
   barCommand: 'bar:command',
   barInteractive: 'bar:interactive',
+  barHitRect: 'bar:hit-rect',
   barToggle: 'bar:toggle',
   barTransforms: 'bar:transforms',
   barMicDevice: 'bar:mic-device',
@@ -159,6 +160,8 @@ export type BarPreloadApi = {
   sendMicStopped: () => void
   sendMicError: (message: string) => void
   setInteractive: (interactive: boolean) => void
+  /** Zone active de la barre (la pilule, ou la pilule et son menu), en pixels dans la fenêtre. */
+  setHitRect: (rect: { x: number; y: number; width: number; height: number } | null) => void
   toggleDictation: () => void
   getTransforms: () => Promise<BarTransforms>
   /** Micro choisi dans les Réglages (vide = micro par défaut de Windows). */

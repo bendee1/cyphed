@@ -110,6 +110,7 @@ const api: Record<string, unknown> = {
   getMicDevice: async () => '',
   readerSpeaking: async () => false,
   setInteractive: noop,
+  setHitRect: noop,
   onBarState: (handler: (s: BarState) => void) => {
     if (phase === 'hidden') return noop
     if (phase === 'processing-msg') {

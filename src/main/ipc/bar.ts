@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron'
+import { ipcMain, screen } from 'electron'
+import { cursorOnBar, HOVER_POLL_MS, parseHitRect, type Rect } from '../services/bar-hover-core'
 import { IPC, type BarReadAction, type HubView } from '@shared/ipc'
 import { loadPersonalization, savePersonalization } from '../services/personalization'
 import { invalidateHub, type MainContext } from '../context'
@@ -57,12 +58,47 @@ export function registerBarIpc(ctx: MainContext): void {
     dictation.onMicError(text || tm('mic.error'))
   })
 
+  // Survol sans crochet souris (voir bar-hover-core) : la barre laisse passer les clics, et on regarde où est le curseur.
+  // Sur la pilule, elle devient cliquable ; la page reçoit alors ses vrais événements et dit quand elle se referme.
+  let hitRect: Rect | null = null
+  let pageInteractive = false
+  let openedByHover = false
+  // Page rechargée ou plantée pendant qu'elle avait la main : elle ne dira jamais qu'elle se referme, on repart de zéro.
+  const reset = (): void => {
+    hitRect = null
+    pageInteractive = false
+    openedByHover = false
+    if (!bar.isDestroyed()) bar.setIgnoreMouseEvents(true)
+  }
+  bar.webContents.on('did-start-loading', reset)
+  bar.webContents.on('render-process-gone', reset)
+  ipcMain.on(IPC.barHitRect, (event, rect: unknown) => {
+    if (!gate.check(event, 'bar')) return
+    hitRect = parseHitRect(rect)
+  })
   ipcMain.on(IPC.barInteractive, (event, interactive: unknown) => {
     if (!gate.check(event, 'bar')) return
     if (bar.isDestroyed()) return
-    if (interactive) bar.setIgnoreMouseEvents(false)
-    else bar.setIgnoreMouseEvents(true, { forward: true })
+    pageInteractive = Boolean(interactive)
+    openedByHover = false
+    bar.setIgnoreMouseEvents(!pageInteractive)
   })
+  const hover = setInterval(() => {
+    if (bar.isDestroyed()) {
+      clearInterval(hover)
+      return
+    }
+    if (pageInteractive || !bar.isVisible()) return
+    const on = cursorOnBar(screen.getCursorScreenPoint(), bar.getContentBounds(), hitRect)
+    if (on && !openedByHover) {
+      openedByHover = true
+      bar.setIgnoreMouseEvents(false)
+    } else if (!on && openedByHover) {
+      openedByHover = false
+      bar.setIgnoreMouseEvents(true)
+    }
+  }, HOVER_POLL_MS)
+  hover.unref?.()
   ipcMain.on(IPC.barToggle, (event) => {
     if (!gate.check(event, 'bar')) return
     void dictation.toggle()
