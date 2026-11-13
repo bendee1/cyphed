@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type RefObject } from 'react'
 import { displayLevel, PEAK_FLOOR } from './level'
 
 type Props = {
@@ -7,6 +7,8 @@ type Props = {
   active: boolean
   /** Traitement : l'anneau tourne, les barres s'éteignent. */
   busy?: boolean
+  /** Halo rouge autour de la pastille : suit la voix à l'écoute, respire pendant le traitement. */
+  haloRef?: RefObject<HTMLElement | null>
 }
 
 // Logo « Le C qui parle » (cyphed-logo-kit/parle/mark.mjs) : ses 5 barres rouges servent de vumètre.
@@ -18,20 +20,24 @@ const BARS: Array<[number, number, number]> = [
   [66.6, 41.28, 13.44],
   [74.8, 43.84, 8.32]
 ]
-const REST = 0.42
+// Amplitude des barres à l'écoute : du repos (voix nulle) au pic, en multiple de la hauteur du logo.
+const REST = 0.3
+const PEAK = 1.9
 
-export function VoiceMark({ level, active, busy = false }: Props) {
+export function VoiceMark({ level, active, busy = false, haloRef }: Props) {
   const uid = useId().replace(/:/g, '')
   const barsRef = useRef<Array<SVGRectElement | null>>([])
   const levelRef = useRef(level)
   const activeRef = useRef(active)
+  const busyRef = useRef(busy)
   const smooth = useRef(0)
   const peak = useRef(PEAK_FLOOR)
 
   useEffect(() => {
     levelRef.current = level
     activeRef.current = active
-  }, [level, active])
+    busyRef.current = busy
+  }, [level, active, busy])
 
   useEffect(() => {
     let raf = 0
@@ -40,15 +46,34 @@ export function VoiceMark({ level, active, busy = false }: Props) {
       peak.current = shown.peak
       const target = activeRef.current ? shown.value : 0
       smooth.current += (target - smooth.current) * (target > smooth.current ? 0.5 : 0.18)
+      const now = performance.now() / 1000
+      const busyNow = busyRef.current && !activeRef.current
       barsRef.current.forEach((bar, i) => {
         if (!bar) return
         const [, y, h] = BARS[i]
-        const jitter = 0.8 + 0.2 * Math.sin(performance.now() / 95 + i * 1.9)
-        const scale = activeRef.current ? REST + (1.25 - REST) * smooth.current * jitter : 1
+        const jitter = 0.8 + 0.2 * Math.sin(now * 10.5 + i * 1.9)
+        // Traitement : les barres ondulent une à une, de gauche à droite.
+        const scale = activeRef.current
+          ? REST + (PEAK - REST) * smooth.current * jitter
+          : busyNow
+            ? 0.45 + 0.75 * Math.max(0, Math.sin(now * 7 - i * 0.9))
+            : 1
         const nextH = h * scale
         bar.setAttribute('height', nextH.toFixed(2))
         bar.setAttribute('y', (y + h / 2 - nextH / 2).toFixed(2))
       })
+      const halo = haloRef?.current
+      if (halo) {
+        const s = smooth.current
+        if (activeRef.current) {
+          halo.style.boxShadow = `0 0 0 ${(2 + 7 * s).toFixed(1)}px rgba(255, 42, 42, ${(0.15 + 0.45 * s).toFixed(2)}), 0 0 ${(6 + 12 * s).toFixed(1)}px rgba(255, 42, 42, ${(0.3 * s).toFixed(2)})`
+        } else if (busyNow) {
+          const p = 0.5 + 0.5 * Math.sin(now * 4)
+          halo.style.boxShadow = `0 0 0 ${(2 + 3 * p).toFixed(1)}px rgba(255, 42, 42, ${(0.18 + 0.12 * p).toFixed(2)})`
+        } else {
+          halo.style.boxShadow = ''
+        }
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
