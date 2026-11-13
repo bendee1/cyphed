@@ -8,17 +8,43 @@ import { FREEZE_LOG_MAX_BYTES, freezeLine, phaseAt, phaseLine, trimLog, type Pha
 /** Dernières étapes, pour retrouver celle qui était en cours au début d'un gel. */
 const phases: Phase[] = [{ name: 'démarrage', at: Date.now() }]
 
-function file(): string {
+/** Chemin du journal (aussi donné à la mesure de mise à jour, qui y écrit elle-même). */
+export function freezeLogFile(): string {
   return join(userDataDir(), 'freezes.log')
 }
 
 function append(line: string): void {
+  const path = freezeLogFile()
+  // La mesure de mise à jour (autre processus) peut tenir le fichier un instant : 3 essais à 20 ms.
+  for (let i = 0; i < 3; i++) {
+    try {
+      appendFileSync(path, line, 'utf8')
+      break
+    } catch {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20)
+    }
+  }
   try {
-    const path = file()
-    appendFileSync(path, line, 'utf8')
-    if (statSync(path).size > FREEZE_LOG_MAX_BYTES) writeFileSync(path, trimLog(readFileSync(path, 'utf8')), 'utf8')
+    // Raccourci seulement quand aucune mesure de mise à jour n'a commencé depuis 2 min, pour ne pas perdre ses lignes.
+    if (statSync(path).size > FREEZE_LOG_MAX_BYTES && !watchRecent()) {
+      writeFileSync(path, trimLog(readFileSync(path, 'utf8')), 'utf8')
+    }
   } catch {
     /* le journal ne doit jamais gêner Cyphed */
+  }
+}
+
+/** Une mesure de mise à jour a-t-elle commencé il y a moins de 2 min (d'après la dernière ligne qu'elle a écrite) ? */
+function watchRecent(): boolean {
+  try {
+    const text = readFileSync(freezeLogFile(), 'utf8')
+    const at = text.lastIndexOf('étape : mesure de la mise à jour')
+    if (at < 0) return false
+    const stampText = text.slice(text.lastIndexOf('\n', at) + 1, at).trim()
+    const when = Date.parse(stampText.replace(' ', 'T'))
+    return Number.isFinite(when) && Date.now() - when < 120_000
+  } catch {
+    return false
   }
 }
 

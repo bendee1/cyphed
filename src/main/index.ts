@@ -152,7 +152,7 @@ async function boot(): Promise<void> {
   const tray = createTray(hub)
   const updates = startAutoUpdates((version) => {
     tray.updateReady(version, () => {
-      if (!dictation.isActive()) updates.installNow() // jamais au milieu d'une dictée
+      if (!dictation.isActive()) void updates.installNow(() => !dictation.isActive()) // jamais au milieu d'une dictée
     })
     if (!hub.isDestroyed()) hub.webContents.send(IPC.hubInvalidate) // le Hub affiche son bandeau
     // Une seule notification par version : sans elle, rien ne dit qu'une mise à jour attend.

@@ -8,6 +8,9 @@
 //   stdout : "d <bouton> <avalé 0|1>" (pressé), "u <bouton> <avalé>" (relâché), "ready" au départ ; seulement pour 4, 5 et 6, jamais pour un clic simulé.
 //            "lag <ms>" : un mouvement de souris arrivé ici plus de 100 ms après avoir eu lieu (gel du PC), au plus une ligne par 500 ms.
 // Se ferme quand stdin se ferme (Cyphed parti). Aucun accès réseau, rien d'autre n'est lu.
+// Mode mesure de mise à jour : « mouse-helper --watch <secondes> <fichier> », lancé par Cyphed au clic sur Redémarrer
+// depuis une copie hors du dossier d'installation. Il survit à la fermeture de Cyphed et à l'installation, mesure les
+// retards de souris et les images que Windows n'affiche pas (écran figé), et les ajoute au journal des gels.
 // Compilé avec csc.exe du .NET Framework 4.x (C# 5).
 using System;
 using System.Collections.Concurrent;
@@ -67,6 +70,8 @@ internal static class MouseHelper
     static extern uint GetCurrentThreadId();
     [DllImport("kernel32.dll")]
     static extern uint GetTickCount();
+    [DllImport("dwmapi.dll")]
+    static extern int DwmFlush();
 
     const int WH_MOUSE_LL = 14;
     const int WM_MOUSEMOVE = 0x0200;
@@ -83,9 +88,15 @@ internal static class MouseHelper
     static HookProc proc; // gardé en vie : le ramasse-miettes ne doit pas le libérer
     static IntPtr hook = IntPtr.Zero;
     static uint lastLagReport;
+    static string watchFile; // mode mesure de mise à jour : les lignes vont dans ce fichier
+    static uint worstLag;
+    static double worstFrame;
 
-    static int Main()
+    static int Main(string[] args)
     {
+        int watchSeconds = 0;
+        if (args.Length >= 3 && args[0] == "--watch" && int.TryParse(args[1], out watchSeconds) && watchSeconds > 0 && watchSeconds <= 600)
+            watchFile = args[2];
         // Ce processus ne fait que répondre au crochet : il passe avant les autres pour que la souris n'attende jamais.
         try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High; } catch { }
         Thread.CurrentThread.Priority = ThreadPriority.Highest;
@@ -94,9 +105,12 @@ internal static class MouseHelper
         var writer = new Thread(WriteLoop);
         writer.IsBackground = true;
         writer.Start();
-        var reader = new Thread(() => ReadLoop(mainThread));
-        reader.IsBackground = true;
-        reader.Start();
+        if (watchFile == null)
+        {
+            var reader = new Thread(() => ReadLoop(mainThread));
+            reader.IsBackground = true;
+            reader.Start();
+        }
 
         // Tout préparer AVANT de poser le crochet : compilation du rappel, structures, verrou, file.
         // Sinon le premier mouvement de souris attend ce travail (lent juste après une installation) et la souris gèle.
@@ -116,9 +130,26 @@ internal static class MouseHelper
 
         hook = SetWindowsHookExW(WH_MOUSE_LL, proc, GetModuleHandleW(IntPtr.Zero), 0);
         if (hook == IntPtr.Zero) return 2;
-        outbox.Add("ready");
+        if (watchFile != null)
+        {
+            outbox.Add(Stamp(DateTime.Now) + "  étape : mesure de la mise à jour, " + watchSeconds + " s (souris et affichage)");
+            var frames = new Thread(WatchFrames);
+            frames.IsBackground = true;
+            frames.Start();
+            int secs = watchSeconds;
+            var timer = new Thread(() => { Thread.Sleep(secs * 1000); PostThreadMessageW(mainThread, WM_QUIT, IntPtr.Zero, IntPtr.Zero); });
+            timer.IsBackground = true;
+            timer.Start();
+        }
+        else outbox.Add("ready");
         while (GetMessageW(out msg, IntPtr.Zero, 0, 0) > 0) { }
         UnhookWindowsHookEx(hook);
+        if (watchFile != null)
+        {
+            outbox.Add(Stamp(DateTime.Now) + "  étape : fin de la mesure de mise à jour (pire retard souris " + worstLag + " ms, pire image " + Math.Round(worstFrame) + " ms)");
+            outbox.CompleteAdding();
+            writer.Join(3000);
+        }
         return 0;
     }
 
@@ -136,13 +167,17 @@ internal static class MouseHelper
                 uint time = (uint)Marshal.ReadInt32(lParam, 16);
                 uint now = GetTickCount();
                 uint lag = now - time;
-                if ((flags & LLMHF_INJECTED) == 0 && lag > LAG_REPORT_MS && lag < 60000 && now - lastLagReport >= 500)
+                if ((flags & LLMHF_INJECTED) == 0 && lag < 60000)
                 {
-                    lastLagReport = now;
-                    outbox.Add("lag " + lag);
+                    if (lag > worstLag) worstLag = lag;
+                    if (lag > LAG_REPORT_MS && now - lastLagReport >= 500)
+                    {
+                        lastLagReport = now;
+                        outbox.Add(watchFile == null ? "lag " + lag : Stamp(DateTime.Now.AddMilliseconds(-lag)) + "  GEL souris " + lag + " ms  (mesure de mise à jour)");
+                    }
                 }
             }
-            else if (nCode >= 0 && (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP || msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP))
+            else if (watchFile == null && nCode >= 0 && (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP || msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP))
             {
                 var data = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
                 if ((data.flags & LLMHF_INJECTED) == 0)
@@ -191,8 +226,44 @@ internal static class MouseHelper
         return false;
     }
 
+    static string Stamp(DateTime t)
+    {
+        return t.ToString("yyyy-MM-dd HH:mm:ss.fff");
+    }
+
+    // Écran figé : DwmFlush attend la prochaine image composée par Windows ; un trou de plus de 100 ms se voit.
+    static void WatchFrames()
+    {
+        var sw = Stopwatch.StartNew();
+        double last = 0;
+        bool first = true;
+        while (true)
+        {
+            // Erreur (écran verrouillé, DWM indisponible) : on repart de zéro, sans compter la panne comme un gel.
+            if (DwmFlush() != 0) { Thread.Sleep(16); first = true; continue; }
+            double now = sw.Elapsed.TotalMilliseconds, gap = now - last;
+            last = now;
+            if (first) { first = false; continue; }
+            if (gap > worstFrame) worstFrame = gap;
+            if (gap > LAG_REPORT_MS) outbox.Add(Stamp(DateTime.Now.AddMilliseconds(-gap)) + "  GEL écran figé " + Math.Round(gap) + " ms  (mesure de mise à jour)");
+        }
+    }
+
     static void WriteLoop()
     {
+        if (watchFile != null)
+        {
+            foreach (string line in outbox.GetConsumingEnumerable())
+            {
+                // Le journal peut être ouvert un instant par Cyphed : on réessaie un peu, sans jamais bloquer le crochet.
+                for (int i = 0; i < 5; i++)
+                {
+                    try { File.AppendAllText(watchFile, line + "\n", new UTF8Encoding(false)); break; }
+                    catch { Thread.Sleep(50); }
+                }
+            }
+            return;
+        }
         var stdout = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
         stdout.AutoFlush = true;
         try

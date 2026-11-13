@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, statSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { projectRoot } from '../paths'
 import type { MouseBindings } from './mouse-bindings'
@@ -105,5 +106,52 @@ export function removeMouseHook(): void {
     child.kill()
   } catch {
     /* déjà fermé */
+  }
+}
+
+/** Durée de la mesure lancée au clic sur « Redémarrer » : fermeture, installation, relancement et premières secondes. */
+const UPDATE_WATCH_SECONDS = 90
+
+/**
+ * Lance la mesure de mise à jour : mouse-helper en mode --watch, copié hors du dossier d'installation
+ * (l'installeur ferme tout ce qui tourne depuis ce dossier et doit pouvoir en remplacer les fichiers).
+ * Détaché : il survit à la fermeture de Cyphed et écrit lui-même dans le journal des gels.
+ */
+export async function startUpdateWatch(logFile: string): Promise<void> {
+  const sizeBefore = fileSize(logFile)
+  try {
+    const source = exePath()
+    if (!existsSync(source)) return
+    const copy = join(tmpdir(), 'cyphed-update-watch.exe')
+    copyFileSync(source, copy)
+    const child = spawn(copy, ['--watch', String(UPDATE_WATCH_SECONDS), logFile], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      env: { SystemRoot: process.env.SystemRoot ?? '' }
+    })
+    // Lancement refusé plus tard (antivirus…) : jamais une erreur non gérée qui bloquerait la mise à jour.
+    child.on('error', () => undefined)
+    child.unref()
+  } catch (err) {
+    console.warn('[mouse] mesure de mise à jour non lancée :', err instanceof Error ? err.message : err)
+    return
+  }
+  // Prête quand elle a écrit sa première ligne dans le journal.
+  for (let waited = 0; waited < 1500; waited += 50) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    try {
+      if (readFileSync(logFile).subarray(sizeBefore).toString('utf8').includes('mesure de la mise à jour')) return
+    } catch {
+      /* pas encore créé */
+    }
+  }
+}
+
+function fileSize(path: string): number {
+  try {
+    return statSync(path).size
+  } catch {
+    return 0
   }
 }

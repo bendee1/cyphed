@@ -77,7 +77,7 @@ export function registerDataIpc(ctx: MainContext): void {
     gate.assert(event, 'hub')
     // Jamais pendant une dictée : redémarrer couperait l'enregistrement et perdrait le texte.
     if (ctx.dictation.isActive()) return false
-    installUpdate()
+    void installUpdate(() => !ctx.dictation.isActive())
     return true
   })
   ipcMain.handle(IPC.hubInsights, (event) => {

@@ -1,7 +1,8 @@
 import { app } from 'electron'
 // electron-updater est en CommonJS : en ESM, autoUpdater n'est lisible que par l'export par défaut.
 import updater from 'electron-updater'
-import { markPhase } from './services/freeze-log'
+import { freezeLogFile, markPhase } from './services/freeze-log'
+import { startUpdateWatch } from './services/mouse-hook'
 
 const { autoUpdater } = updater
 
@@ -19,14 +20,30 @@ export function readyUpdate(): string | null {
 }
 
 /** Ferme Cyphed, installe la version prête (fenêtre de progression seule) et relance. Ne fait rien si aucune n'est prête. */
-export function installUpdate(): void {
+let installing = false
+
+/** `stillOk` est relu après l'attente de la mesure : une dictée lancée entre-temps annule le redémarrage. */
+export async function installUpdate(stillOk: () => boolean = () => true): Promise<void> {
   // Pas silencieux : l'installeur montre sa barre de progression (scripts/installer.nsh saute les autres pages) puis relance Cyphed.
-  if (!ready) return
-  markPhase(`mise à jour ${ready} : clic sur Redémarrer`)
-  autoUpdater.quitAndInstall(false, true)
+  if (!ready || installing) return
+  installing = true
+  try {
+    markPhase(`mise à jour ${ready} : clic sur Redémarrer`)
+    // Le gel ressenti au clic n'apparaît qu'en vraie mise à jour : on le mesure, hors de Cyphed, et on attend
+    // que la mesure soit en place (1,5 s au plus) pour ne pas rater le début.
+    await startUpdateWatch(freezeLogFile())
+    if (!stillOk()) {
+      installing = false
+      return
+    }
+    autoUpdater.quitAndInstall(false, true)
+  } catch (err) {
+    installing = false
+    console.warn('[updates] installation non lancée :', err instanceof Error ? err.message : err)
+  }
 }
 
-export function startAutoUpdates(onReady: (version: string) => void): { installNow: () => void } {
+export function startAutoUpdates(onReady: (version: string) => void): { installNow: typeof installUpdate } {
   const installNow = installUpdate
   if (!app.isPackaged) return { installNow }
   autoUpdater.logger = null // ses traces complètes encombrent le journal ; la ligne [updates] suffit
