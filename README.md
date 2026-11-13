@@ -56,7 +56,7 @@ flowchart LR
   P --> H[(SQLite history)]
 ```
 
-Electron + React + TypeScript, no UI framework, plain CSS. The main process owns the keys, the microphone stream, the Win32 calls (paste, focus, mouse hook) and SQLite. Each window (dictation badge, hub, screen capture) gets its own sandboxed preload with only the calls it needs, and every IPC handler checks which window is calling. A small C# helper reads the focused text field through UI Automation. Details in [docs/architecture.md](docs/architecture.md).
+Electron + React + TypeScript, no UI framework, plain CSS. The main process owns the keys, the microphone stream, the Win32 calls (paste, focus) and SQLite. Each window (dictation badge, hub, screen capture) gets its own sandboxed preload with only the calls it needs, and every IPC handler checks which window is calling. Two small C# helpers: one reads the focused text field through UI Automation, the other holds the global mouse hook outside the main thread. Details in [docs/architecture.md](docs/architecture.md).
 
 From the end of speech to the pasted text: about 1.3 s on my PC (transcript finalization ~0.25 s, cleanup ~1.2 s at p50).
 

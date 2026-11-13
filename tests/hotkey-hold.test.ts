@@ -132,4 +132,40 @@ describe('mouse accelerators', () => {
     assert.equal(got, 'Control+Mouse5')
     assert.equal(mouse.isCapturing(), false)
   })
+
+  it('describes to the mouse helper which buttons to swallow, and says when it changes', async () => {
+    const { MouseBindings } = await import('../src/main/services/mouse-bindings.ts')
+    const mouse = new MouseBindings(() => false)
+    let changes = 0
+    mouse.onChange(() => { changes++ })
+    assert.equal(mouse.state(), 'state 0')
+    mouse.set('dictation', 'Mouse4', () => undefined)
+    mouse.set('read', 'Control+Mouse5', () => undefined)
+    assert.equal(mouse.state(), 'state 0 5:;6:17')
+    mouse.capture(() => undefined)
+    assert.equal(mouse.state(), 'state 1 5:;6:17')
+    mouse.handle(0x04, true)
+    assert.equal(mouse.state(), 'state 0 5:;6:17')
+    mouse.clear()
+    assert.equal(mouse.state(), 'state 0')
+    assert.equal(changes, 5)
+  })
+
+  it('follows the helper decision and releases everything when the helper dies', async () => {
+    const { MouseBindings } = await import('../src/main/services/mouse-bindings.ts')
+    let fired = 0
+    let ctrl = true
+    const mouse = new MouseBindings((vk) => vk === 0x11 && ctrl)
+    mouse.set('a', 'Control+Mouse4', () => { fired++ })
+    ctrl = false // relâché entre la décision du crochet et l'arrivée de l'événement
+    mouse.fromHook(0x05, true, true)
+    await new Promise((r) => setImmediate(r))
+    assert.equal(fired, 1)
+    assert.equal(mouse.isButtonDown(0x05), true)
+    mouse.releaseAll()
+    assert.equal(mouse.isButtonDown(0x05), false)
+    mouse.fromHook(0x06, true, false)
+    await new Promise((r) => setImmediate(r))
+    assert.equal(fired, 1)
+  })
 })

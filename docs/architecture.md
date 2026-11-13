@@ -16,6 +16,7 @@ If a call is not declared in `src/shared/` and exposed by the preload of that wi
 | Process | Role |
 |---|---|
 | main | Lifecycle, shortcuts (keyboard and mouse), speech to text, cleanup, command mode, Win32 paste, SQLite, tray, windows, OCR, vision, text to speech |
+| `mouse-helper.exe` | Global mouse hook for Mouse3/4/5 shortcuts, in its own process: Windows waits for a low-level hook before moving the pointer, so it must never depend on Electron's main thread. Gets the buttons to swallow on stdin, reports presses on stdout. No network |
 | `uia-helper.exe` | Reads the focused text field with UI Automation: text before and after the cursor, selection, editable, password. No network, no disk writes |
 | `pocket-serve.py` | Offline voice for "Read" (Pocket TTS by Kyutai), only when running from source (`npm run build:voice` or `CYPHED_VOICE_DIR`), not in the installer; started on first use, stopped after 10 idle minutes |
 | renderer `bar` | Microphone (raw PCM), the dictation badge and its menus |
@@ -37,7 +38,7 @@ src/main/
 src/preload/          bar.ts, hub.ts, capture.ts
 src/renderer/         hub/ (shell, views, CSS), bar/, capture/
 src/shared/           types, IPC channels, translations, pure helpers
-native/               uia-helper (C#), pocket voice server
+native/               uia-helper and mouse-helper (C#), pocket voice server
 scripts/              check, native and voice builds, UI preview
 tests/                node --test, pure logic and the dictation state machine
 ```

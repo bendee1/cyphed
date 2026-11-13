@@ -1,6 +1,6 @@
 {
   "name": "cyphed",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
   "description": "Voice dictation for Windows: talk, and clean text appears where your cursor is.",
   "type": "module",
@@ -56,6 +56,10 @@
       {
         "from": "native/bin/uia-helper.exe",
         "to": "native/uia-helper.exe"
+      },
+      {
+        "from": "native/bin/mouse-helper.exe",
+        "to": "native/mouse-helper.exe"
       },
       {
         "from": "native/pocket/pocket-serve.py",

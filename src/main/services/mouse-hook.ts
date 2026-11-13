@@ -1,79 +1,102 @@
-import koffi from 'koffi'
+import { app } from 'electron'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { projectRoot } from '../paths'
 import type { MouseBindings } from './mouse-bindings'
+import { LineBuffer } from './uia-core'
 
-const user32 = koffi.load('user32.dll')
-const kernel32 = koffi.load('kernel32.dll')
+/**
+ * Crochet souris global (raccourcis Mouse3/4/5), tenu par le programme natif mouse-helper.
+ * Pourquoi un processus à part : Windows attend la réponse d'un crochet WH_MOUSE_LL avant de bouger la souris
+ * de tout le PC. Quand il tournait dans le fil principal d'Electron, chaque démarrage, arrêt ou mise à jour
+ * de Cyphed gelait la souris une seconde. mouse-helper répond seul, à partir des règles envoyées par state().
+ */
+const EXE_NAME = 'mouse-helper.exe'
+const MAX_RESTARTS = 3
 
-const HookProc = koffi.proto('intptr __stdcall CyphedMouseHookProc(int nCode, uintptr wParam, void* lParam)')
-const MsLlHook = koffi.struct('CyphedMsLlHook', {
-  x: 'int32',
-  y: 'int32',
-  mouseData: 'uint32',
-  flags: 'uint32',
-  time: 'uint32',
-  extra: 'uintptr'
-})
+let proc: ChildProcessWithoutNullStreams | null = null
+let bound: MouseBindings | null = null
+let restarts = 0
+let stopped = false
+const lines = new LineBuffer()
 
-const SetWindowsHookExW = user32.func(
-  'void* __stdcall SetWindowsHookExW(int idHook, CyphedMouseHookProc* lpfn, void* hMod, uint32 dwThreadId)'
-)
-const CallNextHookEx = user32.func('intptr __stdcall CallNextHookEx(void* hhk, int nCode, uintptr wParam, void* lParam)')
-const UnhookWindowsHookEx = user32.func('int __stdcall UnhookWindowsHookEx(void* hhk)')
-const GetModuleHandleW = kernel32.func('void* __stdcall GetModuleHandleW(void* name)')
+function exePath(): string {
+  return app.isPackaged ? join(process.resourcesPath, 'native', EXE_NAME) : join(projectRoot(), 'native', 'bin', EXE_NAME)
+}
 
-const WH_MOUSE_LL = 14
-const WM_MBUTTONDOWN = 0x0207
-const WM_MBUTTONUP = 0x0208
-const WM_XBUTTONDOWN = 0x020b
-const WM_XBUTTONUP = 0x020c
-
-let hook: unknown = null
-let callback: unknown = null
-
-/** Installe le crochet souris global (une seule fois). */
-export function installMouseHook(bindings: MouseBindings): boolean {
-  if (hook) return true
+function send(): void {
+  if (!proc || !bound) return
   try {
-    callback = koffi.register((nCode: number, wParam: number, lParam: unknown) => {
-      try {
-        // Un clic simulé par un autre logiciel (LLMHF_INJECTED) ne lance jamais une dictée.
-        const injected = nCode >= 0 && (wParam === WM_MBUTTONDOWN || wParam === WM_MBUTTONUP || wParam === WM_XBUTTONDOWN || wParam === WM_XBUTTONUP)
-          ? ((koffi.decode(lParam, MsLlHook) as { flags: number }).flags & 1) === 1
-          : false
-        if (nCode >= 0 && !injected) {
-          let button = 0
-          let isDown = false
-          if (wParam === WM_MBUTTONDOWN || wParam === WM_MBUTTONUP) {
-            button = 0x04
-            isDown = wParam === WM_MBUTTONDOWN
-          } else if (wParam === WM_XBUTTONDOWN || wParam === WM_XBUTTONUP) {
-            const data = koffi.decode(lParam, MsLlHook) as { mouseData: number }
-            button = data.mouseData >>> 16 === 1 ? 0x05 : 0x06
-            isDown = wParam === WM_XBUTTONDOWN
-          }
-          if (button && bindings.handle(button, isDown)) return 1
+    proc.stdin.write(bound.state() + '\n')
+  } catch {
+    /* processus en train de mourir : relancé par onExit */
+  }
+}
+
+function start(): boolean {
+  const file = exePath()
+  if (!existsSync(file)) {
+    console.warn('[mouse] mouse-helper.exe introuvable : raccourcis souris indisponibles')
+    return false
+  }
+  try {
+    const child = spawn(file, [], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { SystemRoot: process.env.SystemRoot ?? '' } })
+    lines.reset()
+    child.stdout.on('data', (chunk: Buffer) => {
+      for (const line of lines.push(chunk)) {
+        const [kind, value, flag] = line.trim().split(' ')
+        if (kind === 'ready') {
+          restarts = 0
+          continue
         }
-      } catch {
-        /* ne jamais casser la chaîne de crochets */
+        const button = Number(value)
+        if ((kind === 'd' || kind === 'u') && button >= 4 && button <= 6) bound?.fromHook(button, kind === 'd', flag === '1')
       }
-      return CallNextHookEx(hook, nCode, wParam, lParam)
-    }, koffi.pointer(HookProc))
-    hook = SetWindowsHookExW(WH_MOUSE_LL, callback, GetModuleHandleW(null), 0)
-    return Boolean(hook)
+    })
+    child.stderr.on('data', () => undefined)
+    child.stdin.on('error', () => undefined)
+    child.on('error', () => onExit(child))
+    child.on('exit', () => onExit(child))
+    proc = child
+    send()
+    return true
   } catch (err) {
-    console.warn('[mouse] crochet indisponible :', err instanceof Error ? err.message : err)
-    hook = null
+    console.warn('[mouse] mouse-helper ne démarre pas :', err instanceof Error ? err.message : err)
     return false
   }
 }
 
+function onExit(child: ChildProcessWithoutNullStreams): void {
+  if (proc !== child) return
+  proc = null
+  bound?.releaseAll()
+  if (stopped || restarts >= MAX_RESTARTS) return
+  restarts++
+  start()
+}
+
+/** Lance le crochet souris (une seule fois). */
+export function installMouseHook(bindings: MouseBindings): boolean {
+  if (proc) return true
+  stopped = false
+  bound = bindings
+  bindings.onChange(send)
+  return start()
+}
+
+/** Ferme le crochet : à appeler avant de quitter (et donc avant une mise à jour). */
 export function removeMouseHook(): void {
-  if (hook) {
-    try {
-      UnhookWindowsHookEx(hook)
-    } catch {
-      /* ignore */
-    }
+  stopped = true
+  const child = proc
+  proc = null
+  bound?.releaseAll()
+  bound?.onChange(null)
+  if (!child) return
+  try {
+    child.stdin.end()
+    child.kill()
+  } catch {
+    /* déjà fermé */
   }
-  hook = null
 }
