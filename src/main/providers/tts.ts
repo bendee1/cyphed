@@ -6,7 +6,8 @@ import { getElevenLabsKey, getMistralKey } from '../secrets'
 import { TtsSpeakGate } from './tts-playback'
 import { forSpeech, MAX_SPOKEN_CHARS, splitForSpeech } from '../services/speech-core'
 import { pocket, pocketAvailable } from './pocket'
-import { tm } from '../lang'
+import { mainLang, tm } from '../lang'
+import { MISTRAL_FALLBACK_ITEMS, MISTRAL_TTS_MODEL, sortMistralVoices, type MistralVoiceItem } from './mistral-voices-core'
 
 type TtsRole = 'lire' | 'assistant'
 
@@ -27,15 +28,7 @@ export interface TtsProvider {
   speaking(): boolean
 }
 
-const MISTRAL_TTS = 'voxtral-mini-tts-2603'
 const MISTRAL_SPEECH = 'https://api.mistral.ai/v1/audio/speech'
-
-const MISTRAL_PRESETS: TtsVoice[] = [
-  { id: 'fr_marie_neutral', name: 'Marie — FR (Voxtral)', provider: 'mistral' },
-  { id: 'en_paul_neutral', name: 'Paul — EN (Voxtral)', provider: 'mistral' },
-  { id: 'gb_oliver_neutral', name: 'Oliver — EN (Voxtral)', provider: 'mistral' },
-  { id: 'gb_jane_sarcasm', name: 'Jane — EN (Voxtral)', provider: 'mistral' }
-]
 
 let audioSink: TtsAudioSink | null = null
 
@@ -72,7 +65,7 @@ async function fetchMistralMp3(text: string, voice: VoiceRef, signal: AbortSigna
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: MISTRAL_TTS,
+      model: MISTRAL_TTS_MODEL,
       input: text,
       voice_id: voice.id || DEFAULT_LIRE_VOICE.id,
       response_format: 'mp3'
@@ -158,30 +151,25 @@ export async function listTtsVoices(): Promise<TtsVoice[]> {
 }
 
 async function listMistralVoices(): Promise<TtsVoice[]> {
+  const fallback = sortMistralVoices(MISTRAL_FALLBACK_ITEMS, mainLang())
   const key = getMistralKey()
-  if (!key) return [...MISTRAL_PRESETS]
+  if (!key) return fallback
   try {
-    const res = await fetch('https://api.mistral.ai/v1/audio/voices?type=preset&limit=50', {
-      headers: { Authorization: `Bearer ${key}` }
-    })
-    if (!res.ok) return [...MISTRAL_PRESETS]
-    const json = (await res.json()) as {
-      items?: Array<{ id?: string; slug?: string; name?: string }>
-    }
-    const fromApi = (json.items ?? [])
-      .map((item) => {
-        const id = (item.slug || item.id || '').trim()
-        return {
-          id,
-          name: `${(item.name || id).trim()} — Voxtral`,
-          provider: 'mistral' as const
-        }
+    // La liste est découpée en pages (limit + offset) : on lit tout, au plus 6 pages.
+    const items: MistralVoiceItem[] = []
+    for (let page = 0; page < 6; page += 1) {
+      const res = await fetch(`https://api.mistral.ai/v1/audio/voices?type=preset&limit=50&offset=${items.length}`, {
+        headers: { Authorization: `Bearer ${key}` }
       })
-      .filter((voice) => voice.id)
-    const seen = new Set(fromApi.map((voice) => voice.id))
-    return [...fromApi, ...MISTRAL_PRESETS.filter((voice) => !seen.has(voice.id))]
+      if (!res.ok) return items.length ? sortMistralVoices(items, mainLang()) : fallback
+      const json = (await res.json()) as { items?: MistralVoiceItem[]; total?: number }
+      const batch = json.items ?? []
+      items.push(...batch)
+      if (batch.length === 0 || items.length >= (json.total ?? 0)) break
+    }
+    return items.length ? sortMistralVoices(items, mainLang()) : fallback
   } catch {
-    return [...MISTRAL_PRESETS]
+    return fallback
   }
 }
 

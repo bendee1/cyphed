@@ -38,10 +38,12 @@ function modelUrlTarget(url: string): { ok: boolean; local: boolean } {
 }
 
 const FALLBACK_VOICES: TtsVoice[] = [
-  { id: 'fr_marie_neutral', name: 'Marie, FR (Voxtral)', provider: 'mistral' },
-  { id: 'en_paul_neutral', name: 'Paul, EN (Voxtral)', provider: 'mistral' },
-  { id: 'gb_oliver_neutral', name: 'Oliver, EN (Voxtral)', provider: 'mistral' },
-  { id: 'gb_jane_sarcasm', name: 'Jane, EN (Voxtral)', provider: 'mistral' }
+  { id: 'voice_592', name: 'Marie (FR)', provider: 'mistral' },
+  { id: 'voice_3137', name: 'Manon (FR)', provider: 'mistral' },
+  { id: 'voice_589', name: 'Lea (FR)', provider: 'mistral' },
+  { id: 'voice_3141', name: 'Camille (FR)', provider: 'mistral' },
+  { id: 'fr_marie_neutral', name: 'Marie, Neutral (FR), Voxtral 2', provider: 'mistral' },
+  { id: 'en_paul_neutral', name: 'Paul, Neutral (EN), Voxtral 2', provider: 'mistral' }
 ]
 
 function orphanVoice(voices: TtsVoice[], current: VoiceRef): ReactElement | null {

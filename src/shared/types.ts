@@ -157,7 +157,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hotkey: 'Control+Shift+Space',
   mode: 'toggle',
   language: 'multi',
-  lireVoice: { provider: 'mistral', id: 'fr_marie_neutral' },
+  lireVoice: { provider: 'mistral', id: 'voice_592' },
   assistantVoice: { provider: 'mistral', id: 'en_paul_neutral' },
   keepAudio: true,
   micDeviceId: '',
