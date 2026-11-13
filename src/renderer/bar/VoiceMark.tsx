@@ -7,8 +7,8 @@ type Props = {
   active: boolean
   /** Traitement : l'anneau tourne, les barres s'éteignent. */
   busy?: boolean
-  /** Halo rouge autour de la pastille : suit la voix à l'écoute, respire pendant le traitement. */
-  haloRef?: RefObject<HTMLElement | null>
+  /** Onde à côté du logo : ses barres (enfants) montrent les derniers instants de la voix, de gauche à droite. */
+  waveRef?: RefObject<HTMLElement | null>
 }
 
 // Logo « Le C qui parle » (cyphed-logo-kit/parle/mark.mjs) : ses 5 barres rouges servent de vumètre.
@@ -21,10 +21,12 @@ const BARS: Array<[number, number, number]> = [
   [74.8, 43.84, 8.32]
 ]
 // Amplitude des barres à l'écoute : du repos (voix nulle) au pic, en multiple de la hauteur du logo.
-const REST = 0.3
-const PEAK = 1.9
+const REST = 0.42
+const PEAK = 1.5
+// Une colonne de l'onde toutes les 3 images (environ 50 ms) : l'onde couvre un peu plus d'une demi-seconde.
+const WAVE_STEP = 3
 
-export function VoiceMark({ level, active, busy = false, haloRef }: Props) {
+export function VoiceMark({ level, active, busy = false, waveRef }: Props) {
   const uid = useId().replace(/:/g, '')
   const barsRef = useRef<Array<SVGRectElement | null>>([])
   const levelRef = useRef(level)
@@ -32,6 +34,7 @@ export function VoiceMark({ level, active, busy = false, haloRef }: Props) {
   const busyRef = useRef(busy)
   const smooth = useRef(0)
   const peak = useRef(PEAK_FLOOR)
+  const history = useRef<number[]>([])
 
   useEffect(() => {
     levelRef.current = level
@@ -56,22 +59,23 @@ export function VoiceMark({ level, active, busy = false, haloRef }: Props) {
         const scale = activeRef.current
           ? REST + (PEAK - REST) * smooth.current * jitter
           : busyNow
-            ? 0.45 + 0.75 * Math.max(0, Math.sin(now * 7 - i * 0.9))
+            ? 0.5 + 0.3 * Math.max(0, Math.sin(now * 6 - i * 1.2))
             : 1
         const nextH = h * scale
         bar.setAttribute('height', nextH.toFixed(2))
         bar.setAttribute('y', (y + h / 2 - nextH / 2).toFixed(2))
       })
-      const halo = haloRef?.current
-      if (halo) {
-        const s = smooth.current
-        if (activeRef.current) {
-          halo.style.boxShadow = `0 0 0 ${(2 + 7 * s).toFixed(1)}px rgba(255, 42, 42, ${(0.15 + 0.45 * s).toFixed(2)}), 0 0 ${(6 + 12 * s).toFixed(1)}px rgba(255, 42, 42, ${(0.3 * s).toFixed(2)})`
-        } else if (busyNow) {
-          const p = 0.5 + 0.5 * Math.sin(now * 4)
-          halo.style.boxShadow = `0 0 0 ${(2 + 3 * p).toFixed(1)}px rgba(255, 42, 42, ${(0.18 + 0.12 * p).toFixed(2)})`
-        } else {
-          halo.style.boxShadow = ''
+      const wave = waveRef?.current
+      if (wave) {
+        const cols = wave.children
+        // Traitement : l'onde se calme et défile doucement.
+        history.current.push(busyNow ? 0.15 + 0.12 * Math.max(0, Math.sin(now * 6)) : smooth.current)
+        if (history.current.length > cols.length * WAVE_STEP) history.current.shift()
+        for (let i = 0; i < cols.length; i += 1) {
+          const value = history.current[history.current.length - 1 - (cols.length - 1 - i) * WAVE_STEP] ?? 0
+          const col = cols[i] as HTMLElement
+          col.style.height = `${Math.max(4, Math.round(4 + 26 * value))}px`
+          col.style.opacity = busyNow ? '0.55' : '1'
         }
       }
       raf = requestAnimationFrame(tick)

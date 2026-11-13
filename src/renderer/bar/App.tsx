@@ -11,7 +11,7 @@ const HIDDEN: BarState = { phase: 'hidden', level: 0 }
 export function BarApp() {
   const [state, setState] = useState<BarState>(HIDDEN)
   const micRef = useRef<MicHandle | null>(null)
-  const haloRef = useRef<HTMLSpanElement | null>(null)
+  const waveRef = useRef<HTMLDivElement | null>(null)
   const genRef = useRef(0)
   const queueRef = useRef(Promise.resolve())
 
@@ -224,8 +224,12 @@ export function BarApp() {
             </>
           ) : (
             <>
-              <span className="halo" ref={haloRef} aria-hidden />
-              <VoiceMark level={state.level} active={listening} busy={processing} haloRef={haloRef} />
+              <span className="mark-md"><VoiceMark level={state.level} active={listening} busy={processing} waveRef={waveRef} /></span>
+              {listening || processing ? (
+                <div className="wave" ref={waveRef} aria-hidden>
+                  {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
+                </div>
+              ) : null}
               {processing ? <span className="sr-only" role="status">{t('barui.processing')}</span> : null}
             </>
           )}

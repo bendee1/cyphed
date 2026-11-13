@@ -77,12 +77,27 @@ body {
   animation: spin 1.1s linear infinite;
 }
 
-/* Halo rouge autour de la pastille (ombre posée par VoiceMark à chaque image). */
-.pill .halo {
-  position: absolute;
-  inset: -2px;
-  border-radius: 999px;
-  pointer-events: none;
+/* Onde à côté du logo pendant l'écoute et le traitement (hauteurs posées par VoiceMark à chaque image). */
+.pill .wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+}
+
+.pill .wave i {
+  display: block;
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(#ff6b5c, #ff2a2a 55%, #b30d16);
+}
+
+.pill .mark-md {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 40px;
 }
 
 /* Pastille : repos, survol, écoute, traitement, message */
@@ -126,20 +141,18 @@ body {
   gap: 2px;
 }
 
-/* Place pour le halo sous la pastille : la fenêtre est transparente et coupe ce qui dépasse. */
-.pill.listening,
-.pill.processing,
-.pill.done {
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.pill.listening,
-.pill.processing,
 .pill.done {
   width: 46px;
   height: 46px;
   padding: 3px;
+}
+
+/* Écoute et traitement : la pastille s'allonge, logo à gauche, onde à droite. */
+.pill.listening,
+.pill.processing {
+  height: 46px;
+  padding: 3px 14px 3px 3px;
+  gap: 6px;
 }
 
 .pill.processing:has(.caption) {
