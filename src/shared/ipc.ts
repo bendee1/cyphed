@@ -33,6 +33,7 @@ export const IPC = {
   hubHistory: 'hub:history',
   hubStatus: 'hub:status',
   hubInvalidate: 'hub:invalidate',
+  hubInstallUpdate: 'hub:install-update',
   hubGetSettings: 'hub:settings',
   hubSaveSettings: 'hub:save-settings',
   hubListVoices: 'hub:voices',
@@ -76,6 +77,8 @@ export type HubStatus = {
   count: number
   words: number
   stats: HubStats
+  /** Version téléchargée qui attend un redémarrage (bandeau du Hub). */
+  update?: string | null
 }
 
 export type HubSettings = {
@@ -189,6 +192,8 @@ export type HubPreloadApi = {
   onTtsFailed: (handler: (message: string) => void) => () => void
   getHistory: (query?: string) => Promise<ActivityRecord[]>
   getStatus: () => Promise<HubStatus>
+  /** Redémarre Cyphed sur la version prête. */
+  installUpdate?: () => Promise<boolean>
   onInvalidate: (handler: () => void) => () => void
   getSettings: () => Promise<HubSettings>
   saveSettings: (payload: HubSettingsSave) => Promise<HubSettingsResult>

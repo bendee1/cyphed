@@ -15,6 +15,7 @@ import { loadNotes, saveNotes } from '../services/notes'
 import { pickProfileSamples } from '../services/voice-profile-core'
 import { getAnthropicKey, getCerebrasKey, getDeepgramKey, getElevenLabsKey, getMistralKey, useMockStt } from '../secrets'
 import { loadSettings } from '../services/settings'
+import { installUpdate, readyUpdate } from '../updates'
 import { invalidateHub, type MainContext } from '../context'
 import { mainLang, tm } from '../lang'
 import { formatHotkey } from '../../shared/i18n/index.ts'
@@ -43,8 +44,16 @@ export function registerDataIpc(ctx: MainContext): void {
       mock: useMockStt(),
       count: stats.dictations,
       words: stats.words,
-      stats
+      stats,
+      update: readyUpdate()
     }
+  })
+  ipcMain.handle(IPC.hubInstallUpdate, (event) => {
+    gate.assert(event, 'hub')
+    // Jamais pendant une dictée : redémarrer couperait l'enregistrement et perdrait le texte.
+    if (ctx.dictation.isActive()) return false
+    installUpdate()
+    return true
   })
   ipcMain.handle(IPC.hubInsights, (event) => {
     gate.assert(event, 'hub')

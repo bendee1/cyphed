@@ -127,6 +127,7 @@ export function CyphedHub(): ReactElement {
         </div>
       </aside>
       <main className="cy-main">
+        {status.update ? <UpdateBanner version={status.update} dictating={bar.phase !== 'hidden'} /> : null}
         {view === 'home' ? <Home status={status} mode={mode} rows={rows} insights={insights} barPhase={bar.phase} onSettings={() => setShowSettings(true)} onChanged={() => void pull().catch(() => undefined)} /> : null}
         {view === 'dictionary' ? <Dictionary /> : null}
         {view === 'snippets' ? <Snippets /> : null}
@@ -151,6 +152,35 @@ export function CyphedHub(): ReactElement {
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+/** Une version téléchargée attend : on le dit, avec le bouton pour redémarrer (sinon elle s'installe à la fermeture). */
+function UpdateBanner({ version, dictating }: { version: string; dictating: boolean }): ReactElement {
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="cy-update" role="status">
+      <span className="cy-update-dot" aria-hidden />
+      <p>
+        <strong>{t('update.banner', { version })}</strong> {t('update.bannerHint')}
+      </p>
+      <button
+        type="button"
+        className="cy-btn is-dark"
+        disabled={busy || dictating}
+        onClick={() => {
+          setBusy(true)
+          void hubApi()
+            ?.installUpdate?.()
+            .then((started) => {
+              if (!started) setBusy(false)
+            })
+            .catch(() => setBusy(false))
+        }}
+      >
+        {t('update.restart')}
+      </button>
     </div>
   )
 }

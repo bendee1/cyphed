@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, dialog, globalShortcut, session, type BrowserWindow } from 'electron'
+import { app, dialog, globalShortcut, Notification, session, type BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { DEFAULT_SETTINGS } from '@shared/types'
 import { loadDotEnv, migrateUserDataToAppData, userDataDir } from './paths'
@@ -22,6 +22,7 @@ import { createHotkeys } from './hotkeys'
 import { createFallbackTray, createTray } from './tray'
 import { startAutoUpdates } from './updates'
 import { tm } from './lang'
+import { IPC } from '@shared/ipc'
 import { applyUiLanguage } from './ui-language'
 import type { MainContext } from './context'
 import { registerBarIpc } from './ipc/bar'
@@ -88,6 +89,8 @@ function reportStartupFailure(err: unknown): void {
   dialog.showErrorBox('Cyphed', tm('dialog.startFail', { message: message.slice(0, 600) }))
 }
 
+let updateNote: Notification | null = null
+
 async function boot(): Promise<void> {
   electronApp.setAppUserModelId('app.cyphed.desktop') // = appId de l'installateur : même icône et même groupe dans la barre des tâches
   app.commandLine.appendSwitch('js-flags', '--experimental-sqlite')
@@ -137,7 +140,28 @@ async function boot(): Promise<void> {
   const readerActions = new ReaderActions({ reader, capture, dictation, hub, capturePreload })
   const hotkeys = createHotkeys({ hub, dictation, transformer: new TransformService(bar), readQuick: () => void readerActions.quick() })
   const tray = createTray(hub)
-  const updates = startAutoUpdates((version) => tray.updateReady(version, updates.installNow))
+  const updates = startAutoUpdates((version) => {
+    tray.updateReady(version, () => {
+      if (!dictation.isActive()) updates.installNow() // jamais au milieu d'une dictée
+    })
+    if (!hub.isDestroyed()) hub.webContents.send(IPC.hubInvalidate) // le Hub affiche son bandeau
+    // Une seule notification par version : sans elle, rien ne dit qu'une mise à jour attend.
+    if (Notification.isSupported()) {
+      const note = new Notification({ title: tm('update.notifyTitle'), body: tm('update.notifyBody', { version }), silent: true })
+      updateNote = note // gardée : sans référence, le clic peut se perdre sous Windows
+      note.on('click', () => {
+        updateNote = null
+        if (hub.isDestroyed()) return
+        if (hub.isMinimized()) hub.restore()
+        hub.show()
+        hub.focus()
+      })
+      note.on('close', () => {
+        updateNote = null
+      })
+      note.show()
+    }
+  })
 
   const ctx: MainContext = {
     gate,

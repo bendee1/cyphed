@@ -171,6 +171,41 @@
   overflow: auto;
   min-height: 0;
 }
+/* Bandeau « mise à jour prête », au-dessus de la page, même largeur qu'elle. */
+.cy-update {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 80px);
+  max-width: 960px;
+  margin: 20px auto 0;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid var(--cy-line);
+  border-radius: 10px;
+  background: var(--cy-panel);
+  font-size: 14px;
+}
+.cy-update p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--cy-muted);
+}
+.cy-update strong {
+  color: var(--cy-ink);
+  font-weight: 600;
+}
+.cy-update-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cy-red);
+}
+.cy-update .cy-btn {
+  flex: none;
+  white-space: nowrap;
+}
 .cy-page {
   max-width: 1040px;
   margin: 0 auto;
