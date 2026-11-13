@@ -22,10 +22,11 @@ export function readyUpdate(): string | null {
 /** Ferme Cyphed, installe la version prête (fenêtre de progression seule) et relance. Ne fait rien si aucune n'est prête. */
 let installing = false
 
-/** `stillOk` est relu après l'attente de la mesure : une dictée lancée entre-temps annule le redémarrage. */
-export async function installUpdate(stillOk: () => boolean = () => true): Promise<void> {
+/** `stillOk` est relu après l'attente de la mesure : une dictée lancée entre-temps annule le redémarrage.
+ * Renvoie true si l'installation est lancée, false si elle n'a pas eu lieu (le bouton du Hub se réactive). */
+export async function installUpdate(stillOk: () => boolean = () => true): Promise<boolean> {
   // Pas silencieux : l'installeur montre sa barre de progression (scripts/installer.nsh saute les autres pages) puis relance Cyphed.
-  if (!ready || installing) return
+  if (!ready || installing) return false
   installing = true
   try {
     markPhase(`mise à jour ${ready} : clic sur Redémarrer`)
@@ -34,12 +35,14 @@ export async function installUpdate(stillOk: () => boolean = () => true): Promis
     await startUpdateWatch(freezeLogFile())
     if (!stillOk()) {
       installing = false
-      return
+      return false
     }
     autoUpdater.quitAndInstall(false, true)
+    return true
   } catch (err) {
     installing = false
     console.warn('[updates] installation non lancée :', err instanceof Error ? err.message : err)
+    return false
   }
 }
 

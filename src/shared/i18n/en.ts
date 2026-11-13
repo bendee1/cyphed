@@ -540,6 +540,7 @@ export const en: Record<TextKey, string> = {
   'update.banner': 'Version {version} is ready.',
   'update.bannerHint': 'Cyphed closes and reopens on its own, in about a minute.',
   'update.restart': 'Restart now',
+  'update.restarting': 'Restarting…',
   'tray.updateTip': 'Cyphed: version {version} ready',
   'dialog.startFail': 'Cyphed couldn\'t start.\n\n{message}\n\nQuit it from the notification area icon, then start it again.',
   'notice.dbUnreadable': 'The history database was unreadable. It was kept as {path} and a new one was created.',

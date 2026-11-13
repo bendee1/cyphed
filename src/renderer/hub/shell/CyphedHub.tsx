@@ -169,17 +169,30 @@ function UpdateBanner({ version, dictating }: { version: string; dictating: bool
         type="button"
         className="cy-btn is-dark"
         disabled={busy || dictating}
+        aria-busy={busy}
         onClick={() => {
           setBusy(true)
-          void hubApi()
-            ?.installUpdate?.()
-            .then((started) => {
-              if (!started) setBusy(false)
+          // Le lancement de l'installeur occupe Cyphed 2 à 3 s : on laisse d'abord la page afficher « Redémarrage… ».
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              void hubApi()
+                ?.installUpdate?.()
+                .then((started) => {
+                  if (!started) setBusy(false)
+                })
+                .catch(() => setBusy(false))
             })
-            .catch(() => setBusy(false))
+          )
         }}
       >
-        {t('update.restart')}
+        {busy ? (
+          <>
+            <span className="cy-update-spin" aria-hidden />
+            {t('update.restarting')}
+          </>
+        ) : (
+          t('update.restart')
+        )}
       </button>
     </div>
   )

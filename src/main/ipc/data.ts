@@ -73,12 +73,12 @@ export function registerDataIpc(ctx: MainContext): void {
       return { ok: false as const, error: err instanceof Error ? err.message : String(err) }
     }
   })
-  ipcMain.handle(IPC.hubInstallUpdate, (event) => {
+  ipcMain.handle(IPC.hubInstallUpdate, async (event) => {
     gate.assert(event, 'hub')
     // Jamais pendant une dictée : redémarrer couperait l'enregistrement et perdrait le texte.
     if (ctx.dictation.isActive()) return false
-    void installUpdate(() => !ctx.dictation.isActive())
-    return true
+    // Réponse seulement une fois l'installation lancée ou abandonnée : sinon le bouton resterait sur « Redémarrage… ».
+    return installUpdate(() => !ctx.dictation.isActive())
   })
   ipcMain.handle(IPC.hubInsights, (event) => {
     gate.assert(event, 'hub')
