@@ -117,7 +117,10 @@ const api: Record<string, unknown> = {
     let t = 0
     const timer = window.setInterval(() => {
       t += 1
-      handler({ phase, level: phase === 'listening' ? 0.05 + 0.05 * Math.abs(Math.sin(t / 4)) : 0 })
+      // Voix simulée : syllabes et mots, avec une pause toutes les 4 secondes environ.
+      const s = t * 0.06
+      const speech = s % 4.2 > 3.3 ? 0.004 : 0.12 * Math.max(0, Math.sin(s * 13) * 0.5 + 0.5) * Math.max(0, Math.sin(s * 2.7 + 1) * 0.5 + 0.6)
+      handler({ phase, level: phase === 'listening' ? speech : 0 })
     }, 60)
     return () => window.clearInterval(timer)
   }

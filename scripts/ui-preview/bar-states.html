@@ -6,12 +6,20 @@
     <style>
       body { margin: 0; display: flex; gap: 16px; padding: 16px; background: #fff; font: 500 13px 'Segoe UI', system-ui, sans-serif; color: #3c434d }
       figure { margin: 0; display: grid; gap: 8px; justify-items: center }
-      iframe { width: 140px; height: 76px; border: 0; border-radius: 6px; display: block; zoom: 2.4 }
+      iframe { width: 200px; height: 76px; border: 0; border-radius: 6px; display: block; zoom: 2.4 }
     </style>
   </head>
   <body>
     <figure><iframe src="bar.html?lang=en&phase=hidden"></iframe><figcaption>At rest</figcaption></figure>
     <figure><iframe src="bar.html?lang=en&phase=listening&theme=dark"></iframe><figcaption>Listening</figcaption></figure>
     <figure><iframe src="bar.html?lang=en&phase=processing"></iframe><figcaption>Cleaning up</figcaption></figure>
+    <script>
+      // Capture : sans transitions, chaque cadre montre son état final.
+      for (const f of document.querySelectorAll('iframe')) f.addEventListener('load', () => {
+        const st = f.contentDocument.createElement('style')
+        st.textContent = '* { transition: none !important }'
+        f.contentDocument.head.appendChild(st)
+      })
+    </script>
   </body>
 </html>

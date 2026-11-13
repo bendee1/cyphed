@@ -26,7 +26,7 @@ Hold a shortcut, speak, let go. Cyphed transcribes your voice, removes the fille
 I built it for myself, to have a dictation tool I can read, fix and extend, and I use it every day.
 
 <p align="center">
-  <img src=".github/assets/bar-states.png" width="560" alt="The dictation badge at rest, listening (red bars follow your voice) and processing (the ring spins)">
+  <img src=".github/assets/bar-states.png" width="560" alt="The dictation badge at rest, listening (a red wave follows your voice next to the logo) and cleaning up (the ring spins)">
 </p>
 
 ## Features
@@ -36,7 +36,7 @@ I built it for myself, to have a dictation tool I can read, fix and extend, and 
 - **Knows where you write.** Reads the text around your cursor (Windows UI Automation) so new text joins the sentence correctly, adapts the tone per app (email, chat, code), never reads password fields.
 - **Your words.** Personal dictionary, expansions (type less, say a trigger), and it learns from the corrections you make in the history.
 - **Rewrites.** Apply "Polish", "Write a prompt" or your own instructions to the selected text with a shortcut, or after every dictation. A voice command mode applies a spoken instruction to your selection.
-- **Read aloud.** Select text or a screen area: Cyphed reads it, summarizes or explains it, with a local French voice that works offline.
+- **Read aloud.** Select text or a screen area: Cyphed reads it, summarizes or explains it, with Mistral voices (French Marie, Manon, Léa, Camille and many more) or a local French voice that works offline.
 - **Never loses a dictation.** If the network drops, the audio is kept for 7 days and one click retries it.
 - **Stats.** Words per day, words per minute, streaks, which apps you dictate in.
 - **French and English** interface.

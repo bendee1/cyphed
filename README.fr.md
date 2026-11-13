@@ -20,7 +20,7 @@ Tu tiens un raccourci, tu parles, tu relâches. Cyphed transcrit ta voix, enlèv
 Je l'ai construit pour moi, pour avoir un outil de dictée que je peux lire, corriger et faire évoluer, et je m'en sers tous les jours.
 
 <p align="center">
-  <img src=".github/assets/bar-states.png" width="560" alt="Le badge de dictée au repos, à l'écoute (les barres rouges suivent la voix) et pendant le traitement (l'anneau tourne)">
+  <img src=".github/assets/bar-states.png" width="560" alt="Le badge de dictée au repos, à l'écoute (une onde rouge suit la voix à côté du logo) et pendant le nettoyage (l'anneau tourne)">
 </p>
 
 ## Ce qu'il fait
@@ -30,7 +30,7 @@ Je l'ai construit pour moi, pour avoir un outil de dictée que je peux lire, cor
 - **Sait où tu écris** : lit le texte autour du curseur (UI Automation de Windows) pour bien raccorder la phrase, adapte le ton selon l'appli (mail, message, code), ne lit jamais un champ mot de passe.
 - **Tes mots** : dictionnaire perso, abréviations, et il apprend des corrections faites dans l'historique.
 - **Transformations** : « Peaufiner », « Écrire un prompt » ou tes propres consignes sur le texte sélectionné, par raccourci ou après chaque dictée. Un mode commande applique une consigne dictée à ta sélection.
-- **Lire** : une sélection ou une zone de l'écran, lue, résumée ou expliquée, avec une voix française locale qui marche hors ligne.
+- **Lire** : une sélection ou une zone de l'écran, lue, résumée ou expliquée, avec les voix de Mistral (Marie, Manon, Léa, Camille en français, et bien d'autres) ou une voix française locale qui marche hors ligne.
 - **Aucune dictée perdue** : si le réseau coupe, l'audio est gardé 7 jours et un clic la refait.
 - **Statistiques** : mots par jour, mots par minute, séries, applis où tu dictes.
 - **Interface en français et en anglais.**

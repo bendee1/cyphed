@@ -23,8 +23,8 @@ const BARS: Array<[number, number, number]> = [
 // Amplitude des barres à l'écoute : du repos (voix nulle) au pic, en multiple de la hauteur du logo.
 const REST = 0.42
 const PEAK = 1.5
-// Une colonne de l'onde toutes les 3 images (environ 50 ms) : l'onde couvre un peu plus d'une demi-seconde.
-const WAVE_STEP = 3
+// Une colonne de l'onde toutes les 50 ms, quelle que soit la fréquence de l'écran : l'onde couvre 0,6 s.
+const WAVE_STEP_MS = 50
 
 export function VoiceMark({ level, active, busy = false, waveRef }: Props) {
   const uid = useId().replace(/:/g, '')
@@ -35,6 +35,7 @@ export function VoiceMark({ level, active, busy = false, waveRef }: Props) {
   const smooth = useRef(0)
   const peak = useRef(PEAK_FLOOR)
   const history = useRef<number[]>([])
+  const lastSample = useRef(0)
 
   useEffect(() => {
     levelRef.current = level
@@ -69,10 +70,16 @@ export function VoiceMark({ level, active, busy = false, waveRef }: Props) {
       if (wave) {
         const cols = wave.children
         // Traitement : l'onde se calme et défile doucement.
-        history.current.push(busyNow ? 0.15 + 0.12 * Math.max(0, Math.sin(now * 6)) : smooth.current)
-        if (history.current.length > cols.length * WAVE_STEP) history.current.shift()
+        const sample = busyNow ? 0.15 + 0.12 * Math.max(0, Math.sin(now * 6)) : smooth.current
+        // Une colonne par tranche de 50 ms écoulée (au plus une onde entière après une pause de l'affichage).
+        const steps = Math.min(cols.length, Math.floor((now * 1000 - lastSample.current) / WAVE_STEP_MS))
+        if (steps > 0) {
+          lastSample.current = now * 1000
+          for (let k = 0; k < steps; k += 1) history.current.push(sample)
+          if (history.current.length > cols.length) history.current.splice(0, history.current.length - cols.length)
+        }
         for (let i = 0; i < cols.length; i += 1) {
-          const value = history.current[history.current.length - 1 - (cols.length - 1 - i) * WAVE_STEP] ?? 0
+          const value = history.current[history.current.length - 1 - (cols.length - 1 - i)] ?? 0
           const col = cols[i] as HTMLElement
           col.style.height = `${Math.max(4, Math.round(4 + 26 * value))}px`
           col.style.opacity = busyNow ? '0.55' : '1'
