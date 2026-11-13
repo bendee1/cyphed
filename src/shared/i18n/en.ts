@@ -469,6 +469,12 @@ export const en: Record<TextKey, string> = {
   'prov.pocket.slow': 'Local voice: too slow, try again',
   'prov.pocket.noStart': 'Local voice: the model won’t start',
   'prov.pocket.exited': 'Local voice: the program stopped',
+  'voice.sample': 'Hi, I am the voice that will read your texts in Cyphed.',
+  'set.voice.group.mistral': 'Mistral (Voxtral)',
+  'set.voice.group.elevenlabs': 'ElevenLabs',
+  'set.voice.group.local': 'On this PC',
+  'set.voice.listen': 'Listen',
+  'set.voice.stop': 'Stop',
   'voice.estelle': 'Estelle, FR (local, on this PC)',
 
   // Why a text was left raw

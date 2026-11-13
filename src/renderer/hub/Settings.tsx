@@ -46,6 +46,27 @@ const FALLBACK_VOICES: TtsVoice[] = [
   { id: 'en_paul_neutral', name: 'Paul, Neutral (EN), Voxtral 2', provider: 'mistral' }
 ]
 
+const VOICE_GROUPS: Array<{ provider: TtsVoice['provider']; label: () => string }> = [
+  { provider: 'mistral', label: () => t('set.voice.group.mistral') },
+  { provider: 'elevenlabs', label: () => t('set.voice.group.elevenlabs') },
+  { provider: 'pocket', label: () => t('set.voice.group.local') }
+]
+
+/** Voix rangées par fournisseur, dans l'ordre reçu (Mistral : la langue de l'interface en tête). */
+function voiceOptions(voices: TtsVoice[], prefix: string): ReactElement[] {
+  return VOICE_GROUPS.filter((group) => voices.some((voice) => voice.provider === group.provider)).map((group) => (
+    <optgroup key={`${prefix}-${group.provider}`} label={group.label()}>
+      {voices
+        .filter((voice) => voice.provider === group.provider)
+        .map((voice) => (
+          <option key={`${prefix}-${voiceKey(voice)}`} value={voiceKey(voice)}>
+            {voice.name.replace(/ — (ElevenLabs|Voxtral)$/, '').replace(' — ', ', ')}
+          </option>
+        ))}
+    </optgroup>
+  ))
+}
+
 function orphanVoice(voices: TtsVoice[], current: VoiceRef): ReactElement | null {
   if (voices.some((voice) => sameVoice(voice, current))) return null
   return <option value={voiceKey(current)}>{`${current.provider}:${current.id}`}</option>
@@ -139,6 +160,27 @@ export function SettingsPanel({
   const [status, setStatus] = useState('')
   const [voices, setVoices] = useState<TtsVoice[]>(FALLBACK_VOICES)
   const [voiceError, setVoiceError] = useState('')
+  const [previewing, setPreviewing] = useState<'' | 'lire' | 'assistant'>('')
+  const [previewError, setPreviewError] = useState('')
+
+  async function previewVoice(role: 'lire' | 'assistant'): Promise<void> {
+    const api = hubApi()
+    if (!api?.previewVoice) return
+    if (previewing) {
+      await api.stopSpeak?.()
+      setPreviewing('')
+      return
+    }
+    setPreviewError('')
+    setPreviewing(role)
+    try {
+      await api.previewVoice(role)
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err))
+    } finally {
+      setPreviewing('')
+    }
+  }
   const [mics, setMics] = useState<Array<{ id: string; label: string }>>([])
 
   // Micros branchés, relus quand on en branche ou débranche un.
@@ -639,13 +681,10 @@ export function SettingsPanel({
             if (next) patchSettings({ lireVoice: next })
           }}
         >
-          {voices.map((voice) => (
-            <option key={`lire-${voiceKey(voice)}`} value={voiceKey(voice)}>
-              {voice.name.replace(' — ', ', ')}
-            </option>
-          ))}
+          {voiceOptions(voices, 'lire')}
           {orphanVoice(voices, draft.settings.lireVoice)}
         </select>
+        <VoicePreviewButton role="lire" previewing={previewing} onPreview={previewVoice} />
         <small>{t('set.voice.lire.hint')}</small>
       </label>
 
@@ -659,13 +698,11 @@ export function SettingsPanel({
             if (next) patchSettings({ assistantVoice: next })
           }}
         >
-          {voices.map((voice) => (
-            <option key={`asst-${voiceKey(voice)}`} value={voiceKey(voice)}>
-              {voice.name.replace(' — ', ', ')}
-            </option>
-          ))}
+          {voiceOptions(voices, 'asst')}
           {orphanVoice(voices, draft.settings.assistantVoice)}
         </select>
+        <VoicePreviewButton role="assistant" previewing={previewing} onPreview={previewVoice} />
+        {previewError ? <small role="alert">{previewError}</small> : null}
         <small>{t('set.voice.assistant.hint', { error: voiceError })}</small>
       </label>
 
@@ -677,5 +714,14 @@ export function SettingsPanel({
         {status || (connected ? '' : t('set.status.needElectron'))}
       </p>
     </form>
+  )
+}
+
+function VoicePreviewButton({ role, previewing, onPreview }: { role: 'lire' | 'assistant'; previewing: '' | 'lire' | 'assistant'; onPreview: (role: 'lire' | 'assistant') => Promise<void> }): ReactElement {
+  const active = previewing === role
+  return (
+    <button type="button" className="is-ghost hub-voice-preview" disabled={Boolean(previewing) && !active} onClick={() => void onPreview(role)}>
+      {active ? t('set.voice.stop') : t('set.voice.listen')}
+    </button>
   )
 }

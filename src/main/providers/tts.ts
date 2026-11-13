@@ -131,7 +131,8 @@ async function listElevenLabsVoices(): Promise<TtsVoice[]> {
 }
 
 export async function listTtsVoices(): Promise<TtsVoice[]> {
-  const listed: TtsVoice[] = []
+  // Mistral d'abord (ses voix françaises en tête), puis ElevenLabs, puis la voix locale.
+  const listed: TtsVoice[] = [...(await listMistralVoices())]
   if (getElevenLabsKey()) {
     try {
       listed.push(...(await listElevenLabsVoices()))
@@ -140,7 +141,6 @@ export async function listTtsVoices(): Promise<TtsVoice[]> {
     }
   }
   if (pocketAvailable()) listed.push(...pocketVoices())
-  listed.push(...(await listMistralVoices()))
   const seen = new Set<string>()
   return listed.filter((voice) => {
     const key = `${voice.provider}:${voice.id}`

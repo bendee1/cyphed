@@ -71,6 +71,15 @@ export function registerReaderIpc(ctx: MainContext): void {
       throw new Error(surfaceTtsError(err))
     }
   })
+  ipcMain.handle(IPC.voicePreview, async (event, role: unknown) => {
+    gate.assert(event, 'hub')
+    if (role !== 'lire' && role !== 'assistant') throw new Error('voice:preview role')
+    try {
+      await reader.preview(role)
+    } catch (err) {
+      throw new Error(surfaceTtsError(err))
+    }
+  })
   ipcMain.handle(IPC.readerStop, (event) => {
     gate.assert(event, 'hub')
     reader.stopSpeak()

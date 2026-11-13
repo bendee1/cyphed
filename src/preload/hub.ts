@@ -107,6 +107,9 @@ const api: HubPreloadApi = {
   stopSpeak() {
     return ipcRenderer.invoke('reader:stop') as Promise<void>
   },
+  previewVoice(role) {
+    return ipcRenderer.invoke('voice:preview', role) as Promise<void>
+  },
   beginHotkeyCapture() {
     return ipcRenderer.invoke('hub:hotkey-begin') as Promise<void>
   },

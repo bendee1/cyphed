@@ -39,6 +39,7 @@ export const IPC = {
   readerRun: 'reader:run',
   readerSpeak: 'reader:speak',
   readerStop: 'reader:stop',
+  voicePreview: 'voice:preview',
   captureStart: 'capture:start',
   captureCancel: 'capture:cancel',
   captureInit: 'capture:init',
@@ -197,6 +198,8 @@ export type HubPreloadApi = {
   runReader: (action: ReaderAction, source: ReaderSource) => Promise<ReaderResult>
   speakText: (text: string) => Promise<void>
   stopSpeak: () => Promise<void>
+  /** Lit une courte phrase avec la voix choisie (lecture ou assistant). */
+  previewVoice?: (role: 'lire' | 'assistant') => Promise<void>
   beginHotkeyCapture: () => Promise<void>
   cancelHotkeyCapture: () => Promise<void>
   onHotkeyCapture: (handler: (result: HotkeyCaptureResult) => void) => () => void

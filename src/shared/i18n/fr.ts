@@ -471,6 +471,12 @@ export const fr = {
   'prov.pocket.slow': 'Voix locale : trop lente, réessaie',
   'prov.pocket.noStart': 'Voix locale : le modèle ne démarre pas',
   'prov.pocket.exited': 'Voix locale : le programme s’est arrêté',
+  'voice.sample': 'Bonjour, je suis la voix qui lira tes textes dans Cyphed.',
+  'set.voice.group.mistral': 'Mistral (Voxtral)',
+  'set.voice.group.elevenlabs': 'ElevenLabs',
+  'set.voice.group.local': 'Sur ce PC',
+  'set.voice.listen': 'Écouter',
+  'set.voice.stop': 'Arrêter',
   'voice.estelle': 'Estelle — FR (local, sur ce PC)',
 
   // Raisons d'un texte laissé brut

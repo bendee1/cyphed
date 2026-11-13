@@ -100,6 +100,7 @@ const api: Record<string, unknown> = {
   getNotes: async () => [],
   saveNotes: async () => ({ ok: true }),
   listVoices: async () => [],
+  previewVoice: async () => new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
   getTransforms: async () => ({ transforms: DEFAULT_PERSONALIZATION.transforms.map((t) => ({ id: t.id, name: t.name })), auto: '' }),
   getMicDevice: async () => '',
   readerSpeaking: async () => false,

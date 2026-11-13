@@ -72,6 +72,12 @@ export class ReaderService {
     await this.tts.speak(text, 'lire')
   }
 
+  /** Aperçu d'une voix dans Réglages : une phrase courte, avec la voix enregistrée pour ce rôle. */
+  async preview(role: 'lire' | 'assistant'): Promise<void> {
+    this.tts ??= createTtsProvider()
+    await this.tts.speak(tm('voice.sample'), role)
+  }
+
   async run(action: ReaderAction, source: ReaderSource): Promise<ReaderResult> {
     const started = Date.now()
     const outcome = await this.toFrench(action, source)
