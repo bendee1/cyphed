@@ -1,0 +1,162 @@
+/* Réglages / Lire : styles hérités du moteur (hub-*) en thème clair */
+.cy .hub-settings h1,
+.cy .hub-reader h1 {
+  margin: 0 0 8px;
+  font-family: var(--cy-sans);
+  font-size: 34px;
+  font-weight: 500;
+}
+.cy .hub-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cy-muted);
+}
+.cy .hub-settings > p,
+.cy .hub-reader > p {
+  color: var(--cy-ink-2);
+}
+.cy .hub-field {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+  padding: 0;
+  border: 0;
+}
+.cy .hub-field > span,
+.cy .hub-field > legend {
+  font-weight: 600;
+}
+.cy .hub-field small {
+  color: var(--cy-muted);
+}
+.cy .hub-field p {
+  margin: 0;
+}
+.cy .hub-secret-status {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.cy .hub-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--cy-hover);
+  width: max-content;
+}
+.cy .hub-seg button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-weight: 500;
+}
+.cy .hub-seg button.is-on,
+.cy .hub-seg button[aria-pressed='true'] {
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.cy .is-ghost,
+.cy .hub-reader-toolbar button,
+.cy .hub-settings-actions button {
+  width: max-content;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cy-hover);
+  font-weight: 600;
+}
+.cy .hub-settings-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 20px;
+}
+.cy .hub-settings-status {
+  margin: 0;
+  color: var(--cy-muted);
+}
+.cy .hub-settings-status.is-error {
+  color: #b42318;
+}
+.cy .hub-reader-preview img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--cy-line);
+}
+.cy .hub-reader-result {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--cy-hover);
+}
+.cy .hub-settings h2,
+.cy .hub-reader h2,
+.cy [class*='fui-heading'] {
+  color: var(--cy-ink);
+}
+
+/* Scrollbars clairs, fins */
+.cy *,
+.cy {
+  scrollbar-width: thin;
+  scrollbar-color: #c9cfd6 transparent;
+}
+.cy ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.cy ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cy ::-webkit-scrollbar-thumb {
+  background: #c9cfd6;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Rythme vertical des panneaux repris (Réglages, Lire) */
+.cy .hub-settings,
+.cy .hub-reader {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cy .hub-settings > *,
+.cy .hub-reader > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.cy .hub-reader-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.cy .hub-reader-hint {
+  margin: 0;
+  color: var(--cy-muted);
+  font-size: 13px;
+}
+.cy-page > p {
+  margin: 0 0 18px;
+}
+
+.cy-row p {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cy .hub-note {
+  margin: -2px 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cy-bg);
+  color: var(--cy-ink-2);
+  font-size: 13px;
+}

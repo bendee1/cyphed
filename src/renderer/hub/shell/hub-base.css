@@ -1,0 +1,210 @@
+/* Identité « Onde » : rail sombre, gris bleuté froid, les barres du logo comme langage. Un seul accent (le rouge du logo). */
+@import '@fontsource/instrument-sans/400.css';
+@import '@fontsource/instrument-sans/500.css';
+@import '@fontsource/instrument-sans/600.css';
+@import '@fontsource/instrument-sans/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+.cy {
+  --cy-bg: #eef0f3;
+  --cy-panel: #ffffff;
+  --cy-hover: #e4e8ed;
+  --cy-rail: #171a1f;
+  --cy-rail-on: #252a32;
+  --cy-ink: #161a20;
+  --cy-ink-2: #3c434d;
+  --cy-muted: #67707b;
+  --cy-line: #dde1e6;
+  --cy-red: #ff2a2a;
+  --cy-red-deep: #d81b22;
+  --cy-red-soft: #ffe3df;
+  --cy-graphite: #3d4450;
+  --cy-graphite-mid: #8d95a1;
+  --cy-graphite-soft: #e3e5e8;
+  --cy-accent: linear-gradient(180deg, #ff6b5c, var(--cy-red) 55%, #b30d16);
+  --cy-sans: 'Instrument Sans', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --cy-mono: 'JetBrains Mono', Consolas, monospace;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  /* 92 px : « Transformations » (le libellé le plus long) tient en entier dans le rail. */
+  grid-template-columns: 92px 1fr;
+  background: var(--cy-bg);
+  color: var(--cy-ink);
+  font-family: var(--cy-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+.cy *,
+.cy *::before,
+.cy *::after {
+  box-sizing: border-box;
+}
+.cy button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.cy [hidden] {
+  display: none !important;
+}
+
+/* Rail */
+.cy-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 0 12px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--cy-rail);
+  color: #9aa2ad;
+}
+.cy-brand {
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+.cy-brand svg {
+  width: 46px;
+  height: 46px;
+}
+.cy-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cy-nav button,
+.cy-foot button {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 90px;
+  padding: 9px 1px 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.15;
+  text-align: center;
+}
+.cy-nav button:hover,
+.cy-foot button:hover {
+  background: #1f232a;
+  color: #e6e9ed;
+}
+.cy-nav button[aria-current='page'] {
+  background: var(--cy-rail-on);
+  color: #fff;
+}
+.cy-nav button[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  width: 3px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: 2px;
+  background: var(--cy-red);
+}
+.cy-nav button:focus-visible,
+.cy-foot button:focus-visible {
+  outline: 2px solid #ff6b5c;
+  outline-offset: 1px;
+}
+.cy-ico {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cy-spacer {
+  flex: 1;
+}
+.cy-foot {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.cy-live {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #59616c;
+  box-shadow: 0 0 0 3px var(--cy-rail);
+}
+.cy-live.is-on {
+  background: #22a36a;
+}
+.cy-live.is-live {
+  background: var(--cy-red);
+}
+.cy-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 99px;
+  background: #a8afb8;
+}
+.cy-dot.is-on {
+  background: #22a36a;
+}
+.cy-dot.is-live {
+  background: var(--cy-red);
+}
+
+/* Contenu */
+.cy-main {
+  overflow: auto;
+  min-height: 0;
+}
+.cy-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 40px 60px;
+}
+.cy-h1 {
+  margin: 0 0 24px;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.cy h1,
+.cy h2,
+.cy h3 {
+  letter-spacing: -0.015em;
+}
+.cy-key {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.cy-key kbd {
+  padding: 1px 7px 2px;
+  border: 1px solid #cdd3da;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--cy-ink-2);
+  font: 500 12px var(--cy-mono);
+}
+.cy-nowrap {
+  white-space: nowrap;
+}
+.cy-num {
+  font-variant-numeric: tabular-nums;
+}

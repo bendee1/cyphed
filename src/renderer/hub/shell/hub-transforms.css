@@ -1,0 +1,77 @@
+/* Transforms */
+.cy-h2 {
+  margin: 0;
+  font-family: var(--cy-sans);
+  font-size: 26px;
+  font-weight: 500;
+}
+.cy-auto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--cy-line);
+  border-radius: 12px;
+  background: var(--cy-panel);
+}
+.cy-auto b {
+  display: block;
+}
+.cy-auto span {
+  font-size: 13px;
+  color: var(--cy-muted);
+}
+.cy-form-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 14px 0;
+}
+.cy-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+.cy-card {
+  display: grid;
+  gap: 6px;
+  padding: 20px;
+  border: 1px solid var(--cy-line);
+  border-radius: 14px;
+  background: var(--cy-panel);
+}
+.cy-card.is-on {
+  border-color: var(--cy-ink);
+}
+.cy-card span {
+  color: var(--cy-muted);
+}
+.cy-card-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.cy .cy-card-actions button {
+  border: 0;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--cy-ink-2);
+  font-weight: 600;
+}
+.cy .cy-card-actions button:hover {
+  background: var(--cy-hover);
+}
+
+.cy-auto + .cy-auto {
+  margin-top: 12px;
+}
+.cy-auto .cy-key-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cy .cy-form-col .cy-form-submit {
+  justify-self: end;
+}

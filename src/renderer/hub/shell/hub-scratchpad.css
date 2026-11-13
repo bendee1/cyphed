@@ -1,0 +1,121 @@
+/* Scratchpad */
+.cy-beta {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--cy-ink);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.cy-intro {
+  max-width: 62ch;
+  margin: -12px 0 20px;
+  color: var(--cy-ink-2);
+}
+.cy-pad {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 300px;
+}
+.cy-pad-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: max(240px, calc(100vh - 340px));
+  overflow: auto;
+}
+.cy-pad-search {
+  padding-bottom: 6px;
+}
+.cy .cy-pad-item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+}
+.cy .cy-pad-item:hover,
+.cy .cy-pad-item.is-on {
+  background: var(--cy-hover);
+}
+.cy-pad-item span {
+  font-size: 12px;
+  color: var(--cy-muted);
+}
+.cy-pad-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cy .cy-pad-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+.cy .cy-pad-text {
+  min-height: 200px;
+  flex: 1;
+  resize: vertical;
+  line-height: 1.5;
+}
+.cy-pad-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.cy-pad-spacer {
+  flex: 1;
+}
+.cy .cy-pad-actions .cy-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cy-pad-msg {
+  margin: 0;
+  color: var(--cy-ink-2);
+}
+
+.cy-suggest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+.cy .cy-suggest .cy-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cy-suggest-note {
+  color: var(--cy-muted);
+  font-size: 13px;
+}
+.cy-suggest-list {
+  margin-bottom: 18px;
+}
+.cy-suggest-reason {
+  color: var(--cy-muted);
+  font-size: 13px;
+}
+.cy-suggest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cy .cy-suggest-actions .cy-btn {
+  padding: 6px 12px;
+}
+
+.cy .cy-pad-actions .cy-btn.is-danger {
+  background: transparent;
+  color: #b42318;
+}
+.cy .cy-pad-actions .cy-btn.is-danger:hover {
+  background: #fbeceb;
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs>
+  <linearGradient id="cy-ivory" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#ece8e1"/><stop offset="1" stop-color="#a9a49c"/></linearGradient>
+  <linearGradient id="cy-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b5c"/><stop offset="0.55" stop-color="#ff2a2a"/><stop offset="1" stop-color="#b30d16"/></linearGradient>
+  <radialGradient id="cy-bg" cx="0.3" cy="0.2" r="1.1"><stop offset="0" stop-color="#1d1b1a"/><stop offset="0.55" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+  <linearGradient id="cy-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.04"/><stop offset="1" stop-color="#fff" stop-opacity="0.1"/></linearGradient>
+  <filter id="cy-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>
+  <filter id="cy-drop" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#000" flood-opacity="0.55"/></filter>
+</defs>
+<rect x="8" y="8" width="496" height="496" rx="112" fill="url(#cy-bg)"/>
+<rect x="9.5" y="9.5" width="493" height="493" rx="110.5" fill="none" stroke="url(#cy-rim)" stroke-width="3"/>
+<circle cx="276" cy="256" r="140" fill="#ff2a2a" opacity="0.17" filter="url(#cy-glow)"/>
+<g transform="translate(40 40) scale(4.5)" filter="url(#cy-drop)"><path d="M63.07 28.85A25 25 0 1 0 63.07 67.15" fill="none" stroke="url(#cy-ivory)" stroke-width="13" stroke-linecap="round"/><rect x="42" y="39.2" width="5.2" height="17.6" rx="2.6" fill="url(#cy-red)"/><rect x="50.2" y="33.6" width="5.2" height="28.8" rx="2.6" fill="url(#cy-red)"/><rect x="58.4" y="38.08" width="5.2" height="19.84" rx="2.6" fill="url(#cy-red)"/><rect x="66.6" y="41.28" width="5.2" height="13.44" rx="2.6" fill="url(#cy-red)"/><rect x="74.8" y="43.84" width="5.2" height="8.32" rx="2.6" fill="url(#cy-red)"/></g>
+</svg>

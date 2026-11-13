@@ -1,0 +1,58 @@
+* { box-sizing: border-box; }
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.cap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.cap-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.cap-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+}
+
+.cap-rect {
+  position: absolute;
+  border: 2px solid #ff2a2a;
+  background: rgba(255, 26, 26, 0.08);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.cap-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid rgba(242, 240, 236, 0.16);
+  border-radius: 999px;
+  background: rgba(9, 11, 13, 0.82);
+  color: #f2f0ec;
+  font: 600 12px/1 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}

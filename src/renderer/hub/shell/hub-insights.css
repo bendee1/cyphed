@@ -1,0 +1,114 @@
+/* Insights */
+.cy-page.cy-wide {
+  max-width: 980px;
+}
+.cy-ins-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cy-ins-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cy-ins-card {
+  padding: 22px;
+  border: 1px solid var(--cy-line);
+  border-radius: 16px;
+  background: var(--cy-bg);
+}
+.cy-ins-big {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.cy-ins-label {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--cy-muted);
+}
+.cy-ins-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--cy-ink-2);
+}
+.cy-ins-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 600;
+}
+.cy-ins-sub {
+  margin: 22px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cy-muted);
+}
+.cy-gauge {
+  display: block;
+  width: 100%;
+  max-width: 190px;
+  margin: 10px auto 0;
+}
+.cy-bars {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.cy-bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 96px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.cy-bar-track {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--cy-hover);
+  overflow: hidden;
+}
+.cy-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--cy-graphite);
+}
+.cy-bar-value {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--cy-ink-2);
+  font-weight: 600;
+}
+.cy-apps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cy-apps li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cy-line);
+}
+.cy-heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 14px);
+  grid-auto-columns: 14px;
+  gap: 4px;
+  margin-top: 18px;
+  overflow: hidden;
+}
+.cy-heat-cell {
+  border-radius: 3px;
+  background: #c9cfd6;
+}
+.cy-heat-cell.l1 { background: #ffc9c2; }
+.cy-heat-cell.l2 { background: #ff6b5c; }
+.cy-heat-cell.l3 { background: var(--cy-red-deep); }
+.cy-heat-cell.is-future { opacity: 0.25; }
+

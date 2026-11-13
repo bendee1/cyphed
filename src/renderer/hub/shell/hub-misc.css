@@ -1,0 +1,119 @@
+/* Corriger / apprendre */
+.cy .cy-edit {
+  width: 100%;
+  resize: vertical;
+}
+.cy-learned {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--cy-graphite-soft);
+  color: var(--cy-graphite);
+  font-weight: 500;
+}
+
+/* Raccourci d'une transformation, applications bloquées */
+.cy .cy-key-btn {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--cy-line);
+  border-radius: 8px;
+  background: var(--cy-hover);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cy-blocked {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--cy-line);
+}
+.cy-blocked p:not(.hub-kicker) {
+  color: var(--cy-ink-2);
+}
+.cy-blocked .cy-form {
+  margin-bottom: 0;
+}
+.cy-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: var(--cy-hover);
+  font-weight: 500;
+}
+.cy .cy-chip button {
+  border: 0;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 16px;
+  color: var(--cy-muted);
+}
+
+
+.cy-voice {
+  margin-top: 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--cy-line);
+  border-radius: 14px;
+  background: var(--cy-panel);
+}
+.cy-voice-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.cy-voice-head b {
+  display: block;
+  font-size: 15px;
+}
+.cy-voice-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--cy-muted);
+  font-size: 13px;
+}
+.cy-voice-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--cy-ink-2);
+  white-space: nowrap;
+}
+.cy .cy-voice-text {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.45;
+}
+
+.cy-blocked .cy-voice-toggle {
+  align-items: flex-start;
+  margin: 8px 0 28px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.cy-blocked .cy-voice-toggle input {
+  margin-top: 3px;
+}
+
+.cy .cy-suggest-input {
+  display: inline-block;
+  width: 220px;
+  padding: 6px 10px;
+  margin: 0 6px;
+}
+.cy .cy-suggest-actions .cy-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -1,0 +1,26 @@
+node_modules/
+out/
+release/
+dist/
+.env
+user-data/
+*.db
+*.log
+*.tsbuildinfo
+electron.vite.config.js
+electron.vite.config.d.ts
+src/**/*.js
+src/**/*.d.ts
+!src/renderer/env.d.ts
+.DS_Store
+
+# exécutables natifs compilés (npm run build:native)
+native/bin/
+
+# jeux d'entraînement et exports de dictées (données personnelles)
+*.jsonl
+dataset*
+
+# voix locale livrée (npm run build:voice), ~1 Go
+native/voice/
+native/voice-tmp/

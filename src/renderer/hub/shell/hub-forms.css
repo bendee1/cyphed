@@ -1,0 +1,111 @@
+/* Tabs + forms (Dictionnaire, Style, Snippets, Réglages) */
+.cy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.cy-head .cy-h1 {
+  margin: 0;
+}
+.cy-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--cy-line);
+}
+.cy-tabs button {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--cy-ink-2);
+  font-weight: 500;
+}
+.cy-tabs button[aria-selected='true'] {
+  border-bottom-color: var(--cy-ink);
+  color: var(--cy-ink);
+}
+.cy-input,
+.cy-select,
+.cy .hub-field input,
+.cy .hub-field select,
+.cy .hub-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cy-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--cy-ink);
+  font: inherit;
+}
+.cy-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cy-form.is-single {
+  grid-template-columns: 1fr auto;
+}
+.cy-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+}
+.cy-cell + .cy-cell {
+  border-top: 1px solid var(--cy-line);
+}
+.cy-cell .cy-arrow {
+  color: var(--cy-muted);
+  margin: 0 8px;
+}
+.cy-x {
+  border: 0;
+  background: transparent;
+  color: var(--cy-muted);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+}
+.cy-x:hover {
+  background: var(--cy-hover);
+  color: var(--cy-ink);
+}
+.cy-style-card {
+  display: grid;
+  gap: 10px;
+}
+.cy-choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--cy-line);
+  border-radius: 12px;
+  background: var(--cy-panel);
+  text-align: left;
+}
+.cy-choice[aria-pressed='true'] {
+  border-color: var(--cy-ink);
+  box-shadow: 0 0 0 1px var(--cy-ink);
+}
+.cy-choice b {
+  display: block;
+  font-family: var(--cy-sans);
+  font-size: 20px;
+  font-weight: 500;
+}
+.cy-choice span {
+  color: var(--cy-muted);
+  font-size: 14px;
+}
+.cy-sample {
+  margin-top: 4px;
+  color: var(--cy-ink-2);
+  font-size: 14px;
+}
+
