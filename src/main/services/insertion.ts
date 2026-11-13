@@ -27,6 +27,9 @@ const GlobalLock = kernel32.func('void* __stdcall GlobalLock(void* hMem)')
 const GlobalUnlock = kernel32.func('bool __stdcall GlobalUnlock(void* hMem)')
 const GlobalFree = kernel32.func('void* __stdcall GlobalFree(void* hMem)')
 const RtlMoveMemory = kernel32.func('void __stdcall RtlMoveMemory(void* dst, const void* src, uintptr len)')
+const IsClipboardFormatAvailable = user32.func('bool __stdcall IsClipboardFormatAvailable(uint format)')
+const GetClipboardData = user32.func('void* __stdcall GetClipboardData(uint uFormat)')
+const GlobalSize = kernel32.func('uintptr __stdcall GlobalSize(void* hMem)')
 
 const INPUT_KEYBOARD = 1
 const KEYEVENTF_KEYUP = 0x0002
@@ -42,6 +45,8 @@ const VK_RWIN = 0x5c
 const INPUT_SIZE = 40
 const ASFW_ANY = 0xffffffff
 const CF_UNICODETEXT = 13
+/** Liste de fichiers copiés dans l'Explorateur. */
+const CF_HDROP = 15
 const GMEM_MOVEABLE = 0x0002
 /** Délai avant de remettre le presse-papiers d'origine : l'appli cible doit avoir lu le nôtre. */
 const RESTORE_AFTER_MS = 600
@@ -134,12 +139,104 @@ export function foregroundWindow(): unknown {
 
 // ---------- Presse-papiers ----------
 
-type ClipboardSnapshot = { text: string; html: string; rtf: string; image: NativeImage | null }
+/** Un format brut du presse-papiers (numéro Windows et octets). */
+type RawFormat = { id: number; data: Buffer }
 
-/** Garde tout ce qu'on sait remettre : texte, HTML, RTF, image. */
+type ClipboardSnapshot = {
+  text: string
+  html: string
+  rtf: string
+  image: NativeImage | null
+  /** Fichiers copiés dans l'Explorateur : liste, « copier ou couper », et ce que l'Explorateur y joint. */
+  files: RawFormat[]
+}
+
+/** Une autre appli peut tenir le presse-papiers quelques millisecondes : on réessaie 5 fois, 10 ms d'écart. */
+function openClipboard(): boolean {
+  for (let i = 0; i < 5; i++) {
+    if (OpenClipboard(null)) return true
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)
+  }
+  return false
+}
+
+/** Formats qui accompagnent une copie de fichiers ; sans eux, Ctrl+V ne colle plus le fichier. */
+const FILE_FORMAT_NAMES = ['Preferred DropEffect', 'Shell IDList Array', 'FileNameW', 'FileName']
+
+function readRawFormat(id: number): Buffer | null {
+  const handle = GetClipboardData(id)
+  if (!handle) return null
+  const size = Number(GlobalSize(handle))
+  if (!size || size > 16 * 1024 * 1024) return null
+  const ptr = GlobalLock(handle)
+  if (!ptr) return null
+  try {
+    const data = Buffer.alloc(size)
+    RtlMoveMemory(data, ptr, size)
+    return data
+  } finally {
+    GlobalUnlock(handle)
+  }
+}
+
+/** Lit la copie de fichiers en cours, s'il y en a une. Vide sinon, ou si le presse-papiers est occupé. */
+function snapshotFiles(): RawFormat[] {
+  try {
+    if (!IsClipboardFormatAvailable(CF_HDROP)) return []
+    if (!openClipboard()) return []
+    try {
+      const ids = [CF_HDROP, ...FILE_FORMAT_NAMES.map((name) => Number(RegisterClipboardFormatW(name)))]
+      const out: RawFormat[] = []
+      for (const id of ids) {
+        if (!id || !IsClipboardFormatAvailable(id)) continue
+        const data = readRawFormat(id)
+        if (data) out.push({ id, data })
+      }
+      return out.some((f) => f.id === CF_HDROP) ? out : []
+    } finally {
+      CloseClipboard()
+    }
+  } catch {
+    return []
+  }
+}
+
+/** Remet une copie de fichiers telle quelle (avec le texte qui l'accompagnait). Faux si Windows refuse. */
+function restoreFiles(files: RawFormat[], text: string): boolean {
+  let opened = false
+  try {
+    opened = openClipboard()
+    if (!opened) return false
+    EmptyClipboard()
+    const formats = text ? [...files, { id: CF_UNICODETEXT, data: Buffer.from(`${text}\0`, 'utf16le') }] : files
+    let listRestored = false
+    for (const { id, data } of formats) {
+      const mem = GlobalAlloc(GMEM_MOVEABLE, data.length)
+      if (!mem) continue
+      const ptr = GlobalLock(mem)
+      if (!ptr) {
+        GlobalFree(mem)
+        continue
+      }
+      RtlMoveMemory(ptr, data, data.length)
+      GlobalUnlock(mem)
+      if (!SetClipboardData(id, mem)) GlobalFree(mem)
+      else if (id === CF_HDROP) listRestored = true
+    }
+    // Sans la liste de fichiers, la copie ne colle plus rien : on repasse par la remise habituelle.
+    return listRestored
+  } catch {
+    return false
+  } finally {
+    if (opened) CloseClipboard()
+  }
+}
+
+/** Garde tout ce qu'on sait remettre : texte, HTML, RTF, image, fichiers copiés. */
 function snapshotClipboard(): ClipboardSnapshot {
   const formats = clipboard.availableFormats()
   return {
+    files: snapshotFiles(),
     text: clipboard.readText(),
     html: formats.includes('text/html') ? clipboard.readHTML() : '',
     rtf: formats.includes('text/rtf') ? clipboard.readRTF() : '',
@@ -148,6 +245,7 @@ function snapshotClipboard(): ClipboardSnapshot {
 }
 
 function restoreClipboard(snap: ClipboardSnapshot): void {
+  if (snap.files.length > 0 && restoreFiles(snap.files, snap.text)) return
   const image = snap.image && !snap.image.isEmpty() ? snap.image : undefined
   if (!snap.html && !snap.rtf && !image) {
     if (snap.text) writePrivateText(snap.text)

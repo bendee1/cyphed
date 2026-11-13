@@ -367,6 +367,7 @@ export const en: Record<TextKey, string> = {
   'barui.readZone': 'Read an area of the screen',
   'barui.readHint': 'In French, translated if needed. Ctrl+Alt+L: read the selection, or stop.',
   'barui.applyAfter': 'Apply after every dictation',
+  'barui.forApp': 'Here: the setting for “{category}”',
   'barui.configure': 'Set up rewrites',
   'barui.error': 'Error',
   'barui.processing': 'Processing',

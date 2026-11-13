@@ -1,6 +1,7 @@
 import { app } from 'electron'
 // electron-updater est en CommonJS : en ESM, autoUpdater n'est lisible que par l'export par défaut.
 import updater from 'electron-updater'
+import { markPhase } from './services/freeze-log'
 
 const { autoUpdater } = updater
 
@@ -20,7 +21,9 @@ export function readyUpdate(): string | null {
 /** Ferme Cyphed, installe la version prête (fenêtre de progression seule) et relance. Ne fait rien si aucune n'est prête. */
 export function installUpdate(): void {
   // Pas silencieux : l'installeur montre sa barre de progression (scripts/installer.nsh saute les autres pages) puis relance Cyphed.
-  if (ready) autoUpdater.quitAndInstall(false, true)
+  if (!ready) return
+  markPhase(`mise à jour ${ready} : clic sur Redémarrer`)
+  autoUpdater.quitAndInstall(false, true)
 }
 
 export function startAutoUpdates(onReady: (version: string) => void): { installNow: () => void } {

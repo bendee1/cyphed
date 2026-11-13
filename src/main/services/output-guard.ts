@@ -107,12 +107,26 @@ function digitRuns(text: string): string[] {
 function numberKept(run: string, text: string, outRuns: Set<string>, english = false): boolean {
   if (outRuns.has(run) || text.replace(SEPARATORS, '').includes(run)) return true
   const n = Number(run)
+  if (english && run.length <= 2) {
+    // Traduit en anglais, un nombre de 0 à 99 peut s'écrire en lettres : « 21 » → « twenty-one », « 1 » → « a ».
+    return new RegExp(`(^|[^\\p{L}])${englishNumberPattern(n)}($|[^\\p{L}])`, 'iu').test(text)
+  }
   if (run.length <= 2 && n <= 20) {
-    // « j'ai 1 chat » → « I have a cat » ; « 1 hour » → « une heure ».
-    const word = n === 1 ? (english ? '(?:one|an?)' : '(?:une?)') : (english ? SMALL_NUMBERS_EN : SMALL_NUMBERS)[n]
+    // « 1 hour » → « une heure ».
+    const word = n === 1 ? '(?:une?)' : SMALL_NUMBERS[n]
     return new RegExp(`(^|[^\\p{L}])${word}($|[^\\p{L}])`, 'iu').test(text)
   }
   return false
+}
+
+const TENS_EN = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
+
+/** Un nombre de 0 à 99 écrit en lettres anglaises : « twenty-one », « twenty one ». */
+function englishNumberPattern(n: number): string {
+  if (n === 1) return '(?:one|an?)'
+  if (n <= 20) return SMALL_NUMBERS_EN[n]
+  const tens = TENS_EN[Math.floor(n / 10)]
+  return n % 10 === 0 ? tens : `${tens}[-\\s‐‑–]${SMALL_NUMBERS_EN[n % 10]}`
 }
 
 function linkTokens(text: string): string[] {

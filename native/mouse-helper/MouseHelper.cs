@@ -6,6 +6,7 @@
 // Protocole (lignes UTF-8) :
 //   stdin  : "state <capture 0|1> <bouton>:<vk>,<vk>;<bouton>:..."  boutons à avaler (4 milieu, 5 précédent, 6 suivant)
 //   stdout : "d <bouton> <avalé 0|1>" (pressé), "u <bouton> <avalé>" (relâché), "ready" au départ ; seulement pour 4, 5 et 6, jamais pour un clic simulé.
+//            "lag <ms>" : un mouvement de souris arrivé ici plus de 100 ms après avoir eu lieu (gel du PC), au plus une ligne par 500 ms.
 // Se ferme quand stdin se ferme (Cyphed parti). Aucun accès réseau, rien d'autre n'est lu.
 // Compilé avec csc.exe du .NET Framework 4.x (C# 5).
 using System;
@@ -64,8 +65,12 @@ internal static class MouseHelper
     static extern IntPtr GetModuleHandleW(IntPtr name);
     [DllImport("kernel32.dll")]
     static extern uint GetCurrentThreadId();
+    [DllImport("kernel32.dll")]
+    static extern uint GetTickCount();
 
     const int WH_MOUSE_LL = 14;
+    const int WM_MOUSEMOVE = 0x0200;
+    const int LAG_REPORT_MS = 100;
     const int WM_MBUTTONDOWN = 0x0207, WM_MBUTTONUP = 0x0208, WM_XBUTTONDOWN = 0x020b, WM_XBUTTONUP = 0x020c;
     const uint WM_QUIT = 0x0012;
     const uint LLMHF_INJECTED = 1;
@@ -77,6 +82,7 @@ internal static class MouseHelper
     static readonly BlockingCollection<string> outbox = new BlockingCollection<string>();
     static HookProc proc; // gardé en vie : le ramasse-miettes ne doit pas le libérer
     static IntPtr hook = IntPtr.Zero;
+    static uint lastLagReport;
 
     static int Main()
     {
@@ -101,6 +107,10 @@ internal static class MouseHelper
         Marshal.SizeOf(typeof(MSLLHOOKSTRUCT));
         lock (Gate) { Matches(4); }
         GetAsyncKeyState(0x11);
+        GetTickCount();
+        IntPtr warm = Marshal.AllocHGlobal(40);
+        Marshal.ReadInt32(warm, 12);
+        Marshal.FreeHGlobal(warm);
         MSG msg;
         PeekMessageW(out msg, IntPtr.Zero, 0, 0, 0); // crée la file de messages du fil avant le crochet
 
@@ -118,7 +128,21 @@ internal static class MouseHelper
         try
         {
             int msg = wParam.ToInt32();
-            if (nCode >= 0 && (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP || msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP))
+            if (nCode >= 0 && msg == WM_MOUSEMOVE)
+            {
+                // Mesure du gel : Windows date chaque mouvement ; s'il arrive en retard, le PC a gelé avant nous.
+                // Lecture directe des champs (flags à +12, time à +16) : aucune allocation à chaque mouvement.
+                uint flags = (uint)Marshal.ReadInt32(lParam, 12);
+                uint time = (uint)Marshal.ReadInt32(lParam, 16);
+                uint now = GetTickCount();
+                uint lag = now - time;
+                if ((flags & LLMHF_INJECTED) == 0 && lag > LAG_REPORT_MS && lag < 60000 && now - lastLagReport >= 500)
+                {
+                    lastLagReport = now;
+                    outbox.Add("lag " + lag);
+                }
+            }
+            else if (nCode >= 0 && (msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP || msg == WM_XBUTTONDOWN || msg == WM_XBUTTONUP))
             {
                 var data = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
                 if ((data.flags & LLMHF_INJECTED) == 0)

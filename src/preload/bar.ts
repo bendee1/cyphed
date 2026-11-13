@@ -46,8 +46,8 @@ const api: BarPreloadApi = {
   getTransforms() {
     return ipcRenderer.invoke('bar:transforms') as Promise<BarTransforms>
   },
-  setAutoTransform(id) {
-    return ipcRenderer.invoke('bar:set-auto', id) as Promise<void>
+  setAutoTransform(id, category) {
+    return ipcRenderer.invoke('bar:set-auto', id, category) as Promise<void>
   },
   openHub(view: HubView) {
     ipcRenderer.send('bar:open-hub', view)

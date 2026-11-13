@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import { projectRoot } from '../paths'
 import type { MouseBindings } from './mouse-bindings'
 import { LineBuffer } from './uia-core'
+import { recordFreeze } from './freeze-log'
+import { parseLagLine } from './freeze-log-core'
 
 /**
  * Crochet souris global (raccourcis Mouse3/4/5), tenu par le programme natif mouse-helper.
@@ -46,6 +48,11 @@ function start(): boolean {
     child.stdout.on('data', (chunk: Buffer) => {
       for (const line of lines.push(chunk)) {
         const [kind, value, flag] = line.trim().split(' ')
+        const lag = parseLagLine(line)
+        if (lag !== null) {
+          recordFreeze(lag)
+          continue
+        }
         if (kind === 'ready') {
           restarts = 0
           continue

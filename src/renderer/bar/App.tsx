@@ -131,13 +131,13 @@ export function BarApp() {
 
   async function pick(id: string): Promise<void> {
     setLastAuto(id)
-    await window.cyphed.setAutoTransform(id)
+    await window.cyphed.setAutoTransform(id, tf.category)
     await refresh()
   }
 
   async function toggleAuto(): Promise<void> {
     const target = tf.auto ? '' : lastAuto || tf.transforms[0]?.id || ''
-    await window.cyphed.setAutoTransform(target)
+    await window.cyphed.setAutoTransform(target, tf.category)
     await refresh()
   }
 
@@ -184,6 +184,7 @@ export function BarApp() {
                 onClick={() => void toggleAuto()}
               />
             </div>
+            {tf.category ? <p className="menu-hint">{t('barui.forApp', { category: t(`cat.${tf.category}`) })}</p> : null}
             <div className="menu-sep" />
             {tf.transforms.map((tr) => (
               <button type="button" role="menuitemradio" aria-checked={(tf.auto || lastAuto) === tr.id} className="menu-item" key={tr.id} onClick={() => void pick(tr.id)}>

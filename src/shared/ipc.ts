@@ -1,4 +1,4 @@
-import type { ActivityRecord, AppSettings, BarState, HubStats, Insights, Personalization, ScratchNote, SecretState, SecretWrite, TermSuggestion } from './types'
+import type { ActivityRecord, AppSettings, BarState, HubStats, Insights, Personalization, ScratchNote, SecretState, SecretWrite, TermSuggestion, TransformAppCategory } from './types'
 
 export const IPC = {
   barState: 'bar:state',
@@ -166,7 +166,7 @@ export type BarPreloadApi = {
   readAloud: (action: BarReadAction) => Promise<void>
   /** Une lecture est-elle en cours (pour proposer « Arrêter ») ? */
   readerSpeaking: () => Promise<boolean>
-  setAutoTransform: (id: string) => Promise<void>
+  setAutoTransform: (id: string, category?: TransformAppCategory) => Promise<void>
   openHub: (view: HubView) => void
 }
 
@@ -174,7 +174,10 @@ export type HubView = 'home' | 'insights' | 'dictionary' | 'snippets' | 'style' 
 
 export type BarTransforms = {
   transforms: Array<{ id: string; name: string }>
+  /** Transformation automatique qui s'applique dans l'appli au premier plan. */
   auto: string
+  /** Présent quand ce type d'appli a son propre réglage (Transformations > Selon l'application) : la barre change celui-là. */
+  category?: TransformAppCategory
 }
 
 export type HubPreloadApi = {

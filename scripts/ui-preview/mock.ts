@@ -101,7 +101,12 @@ const api: Record<string, unknown> = {
   saveNotes: async () => ({ ok: true }),
   listVoices: async () => [],
   previewVoice: async () => new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
-  getTransforms: async () => ({ transforms: DEFAULT_PERSONALIZATION.transforms.map((t) => ({ id: t.id, name: t.name })), auto: '' }),
+  // `?barcat=email` : l'appli au premier plan a son propre réglage (la barre l'indique).
+  getTransforms: async () => ({
+    transforms: DEFAULT_PERSONALIZATION.transforms.map((t) => ({ id: t.id, name: t.name })),
+    auto: params.get('barcat') ? DEFAULT_PERSONALIZATION.transforms[0]?.id ?? '' : '',
+    ...(params.get('barcat') ? { category: params.get('barcat') as 'email' } : {})
+  }),
   getMicDevice: async () => '',
   readerSpeaking: async () => false,
   setInteractive: noop,

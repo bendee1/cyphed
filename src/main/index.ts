@@ -13,6 +13,7 @@ import { pocket } from './providers/pocket'
 import { CaptureService } from './services/capture'
 import { ReaderService } from './services/reader'
 import { TransformService } from './services/transform'
+import { markPhase } from './services/freeze-log'
 import { createBarWindow, createHubWindow, devRendererOrigin, markQuitting, showBar } from './windows'
 import { removeMouseHook } from './services/mouse-hook'
 import { getDb, takeDbRecovery } from './db'
@@ -62,7 +63,10 @@ if (!gotLock) {
 let hubWindow: BrowserWindow | null = null
 let booted = false
 
-app.on('before-quit', markQuitting)
+app.on('before-quit', () => {
+  markPhase('fermeture de Cyphed')
+  markQuitting()
+})
 
 // Deuxième lancement : on montre le Hub de l'instance déjà ouverte.
 app.on('second-instance', () => {
@@ -93,6 +97,7 @@ function reportStartupFailure(err: unknown): void {
 let updateNote: Notification | null = null
 
 async function boot(): Promise<void> {
+  markPhase('démarrage de Cyphed')
   electronApp.setAppUserModelId('app.cyphed.desktop') // = appId de l'installateur : même icône et même groupe dans la barre des tâches
   app.commandLine.appendSwitch('js-flags', '--experimental-sqlite')
 
@@ -140,6 +145,7 @@ async function boot(): Promise<void> {
   const capturePreload = join(__dirname, '../preload/capture.js')
   const readerActions = new ReaderActions({ reader, capture, dictation, hub, capturePreload })
   dictation.onStart = () => {
+    markPhase('dictée lancée')
     if (reader.speaking()) reader.stopSpeak()
   }
   const hotkeys = createHotkeys({ hub, dictation, transformer: new TransformService(bar), readQuick: () => void readerActions.quick() })
@@ -224,6 +230,7 @@ async function boot(): Promise<void> {
   booted = true
 
   tray.create(hotkeys.active())
+  markPhase('Cyphed prêt')
 
   logIdleResources('ready')
   setTimeout(() => logIdleResources('idle+3s'), 3000)

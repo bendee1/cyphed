@@ -370,6 +370,7 @@ export const fr = {
   'barui.readHint': 'En français, traduit si besoin. Ctrl+Alt+L : lire la sélection, ou arrêter.',
   'barui.applyAfter': 'Appliquer après chaque dictée',
   'barui.configure': 'Configurer les transformations',
+  'barui.forApp': 'Ici : réglage propre à « {category} »',
   'barui.error': 'Erreur',
   'barui.processing': 'Traitement',
   'capture.hint': 'Glisse pour sélectionner · Échap pour annuler',

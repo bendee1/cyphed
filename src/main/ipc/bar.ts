@@ -3,6 +3,9 @@ import { IPC, type BarReadAction, type HubView } from '@shared/ipc'
 import { loadPersonalization, savePersonalization } from '../services/personalization'
 import { invalidateHub, type MainContext } from '../context'
 import { loadSettings } from '../services/settings'
+import { captureForeground } from '../services/context'
+import { styleCategory } from '../providers/cleanup-prompt'
+import { TRANSFORM_APP_CATEGORIES, type Personalization, type TransformAppCategory } from '@shared/types'
 import { tm } from '../lang'
 
 /** Une trame audio fait ~1 Ko (32 ms de PCM 16 bits) : au-delà de 64 Ko ce n'est pas notre micro. */
@@ -82,13 +85,23 @@ export function registerBarIpc(ctx: MainContext): void {
   ipcMain.handle(IPC.barTransforms, (event) => {
     gate.assert(event, 'bar')
     const p = loadPersonalization()
-    return { transforms: p.transforms.map((t) => ({ id: t.id, name: t.name })), auto: p.autoTransform }
+    const transforms = p.transforms.map((t) => ({ id: t.id, name: t.name }))
+    // La barre ne prend pas le focus : la fenêtre au premier plan est l'appli où l'on va dicter.
+    const category = ownCategory(p)
+    if (category) return { transforms, auto: p.autoTransformByApp[category] ?? '', category }
+    return { transforms, auto: p.autoTransform }
   })
-  ipcMain.handle(IPC.barSetAuto, (event, id: unknown) => {
+  ipcMain.handle(IPC.barSetAuto, (event, id: unknown, category: unknown) => {
     gate.assert(event, 'bar')
     const p = loadPersonalization()
+    const value = typeof id === 'string' ? id : ''
+    // Le type d'appli que la barre affichait : on change son réglage propre, pas celui par défaut.
+    // Une catégorie fournie mais inconnue : on n'écrit rien plutôt que de changer le défaut par erreur.
+    if (category != null && !(typeof category === 'string' && (TRANSFORM_APP_CATEGORIES as string[]).includes(category))) return
+    const own = typeof category === 'string' ? (category as TransformAppCategory) : undefined
+    const next = own ? { ...p, autoTransformByApp: { ...p.autoTransformByApp, [own]: value } } : { ...p, autoTransform: value }
     try {
-      savePersonalization({ ...p, autoTransform: typeof id === 'string' ? id : '' })
+      savePersonalization(next)
     } catch (err) {
       ctx.dictation.notify(err instanceof Error ? err.message : String(err))
       return
@@ -103,4 +116,15 @@ export function registerBarIpc(ctx: MainContext): void {
     hub.focus()
     hub.webContents.send(IPC.hubNavigate, view)
   })
+}
+
+/** Type de l'appli au premier plan, s'il a son propre réglage de transformation automatique. */
+function ownCategory(p: Personalization): TransformAppCategory | undefined {
+  try {
+    const target = captureForeground()
+    const category = styleCategory(target.processName, target.title) as TransformAppCategory
+    return p.autoTransformByApp[category] !== undefined ? category : undefined
+  } catch {
+    return undefined
+  }
 }
