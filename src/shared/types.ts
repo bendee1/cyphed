@@ -94,6 +94,14 @@ export type AppSettings = {
   assistantVoice: VoiceRef
   /** Garder l'audio de chaque dictée 7 jours, pour pouvoir la réessayer après une panne. */
   keepAudio: boolean
+  /** Garder l'historique des dictées : 0 = toujours, sinon nombre de jours (plus ancien effacé). */
+  historyDays: number
+  /** Langue du texte écrit : '' = celle de la dictée, sinon la dictée est traduite (fr ou en). */
+  outputLanguage: '' | 'fr' | 'en'
+  /** Vitesse de la voix qui lit (Lire, aperçu), de 0,8 à 1,6 ; 1 = normale. */
+  readSpeed: number
+  /** Lancer Cyphed à l'ouverture de la session Windows, sans ouvrir le Hub. */
+  openAtLogin: boolean
   /** Micro choisi (identifiant du navigateur) ; vide = micro par défaut de Windows. */
   micDeviceId: string
   /** Nom du micro choisi, pour l'afficher même quand il est débranché. */
@@ -160,6 +168,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lireVoice: { provider: 'mistral', id: 'voice_592' },
   assistantVoice: { provider: 'mistral', id: 'en_paul_neutral' },
   keepAudio: true,
+  openAtLogin: false,
+  readSpeed: 1,
+  outputLanguage: '',
+  historyDays: 0,
   micDeviceId: '',
   micLabel: '',
   cleanupLevel: 'normal',
@@ -194,6 +206,9 @@ export function emptyHubStats(): HubStats {
 
 export type StyleTone = 'formal' | 'casual' | 'very_casual'
 export type StyleCategory = 'personal' | 'work' | 'email' | 'other'
+/** Types d'applis pour la transformation automatique (les styles plus le code et les assistants IA). */
+export type TransformAppCategory = StyleCategory | 'code' | 'ai'
+export const TRANSFORM_APP_CATEGORIES: TransformAppCategory[] = ['ai', 'email', 'work', 'personal', 'code', 'other']
 
 export type DictionaryEntry = { term: string; replacement?: string }
 export type SnippetEntry = { trigger: string; text: string }
@@ -207,6 +222,8 @@ export type Personalization = {
   transforms: TransformEntry[]
   /** id de la transformation appliquée à chaque dictée ; vide = aucune */
   autoTransform: string
+  /** Transformation automatique propre à un type d'appli (prend le pas sur autoTransform) ; '' = aucune ici. */
+  autoTransformByApp: Partial<Record<TransformAppCategory, string>>
   /** applications (nom de processus sans .exe) où la dictée est coupée */
   blockedApps: string[]
   /** résumé du style d'écriture de la personne, ajouté aux prompts (texte modifiable) */
@@ -250,6 +267,7 @@ export const DEFAULT_PERSONALIZATION: Personalization = {
   styles: { personal: 'casual', work: 'casual', email: 'formal', other: 'casual' },
   transforms: DEFAULT_TRANSFORMS,
   autoTransform: '',
+  autoTransformByApp: {},
   blockedApps: [],
   voiceProfile: '',
   voiceProfileEnabled: true,
@@ -277,3 +295,22 @@ export type Insights = {
 }
 
 export type ScratchNote = { id: string; title: string; text: string; updatedAt: string }
+
+export const READ_SPEEDS = [0.8, 1, 1.25, 1.5] as const
+
+/** Vitesse de lecture lue d'un fichier ou d'une requête : bornée à 0,8–1,6, sinon 1. */
+export function parseReadSpeed(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0.8 && value <= 1.6 ? value : 1
+}
+
+/** Langue de sortie lue d'un fichier ou d'une requête : fr, en, sinon '' (pas de traduction). */
+export function parseOutputLanguage(value: unknown): AppSettings['outputLanguage'] {
+  return value === 'fr' || value === 'en' ? value : ''
+}
+
+/** Durées proposées pour l'historique (0 = toujours). */
+export const HISTORY_DAYS = [0, 90, 30, 7] as const
+
+export function parseHistoryDays(value: unknown): number {
+  return typeof value === 'number' && (HISTORY_DAYS as readonly number[]).includes(value) ? value : 0
+}

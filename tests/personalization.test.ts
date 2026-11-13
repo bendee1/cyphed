@@ -153,3 +153,15 @@ describe('learning and blocking', () => {
     assert.equal(isBlockedApp(p, ''), false)
   })
 })
+
+describe('transformation automatique par type d’appli', () => {
+  it('le réglage du type d’appli passe avant le réglage général, et « aucune » est respecté', async () => {
+    const { parsePersonalization, autoTransformFor } = await import('../src/main/services/personalization-core.ts')
+    const p = parsePersonalization({ autoTransform: 'polish', autoTransformByApp: { ai: 'prompt-engineer', personal: '', email: 'inconnue' } })
+    assert.equal(autoTransformFor(p, 'ai'), 'prompt-engineer')
+    assert.equal(autoTransformFor(p, 'personal'), '')
+    assert.equal(autoTransformFor(p, 'work'), 'polish')
+    // Transformation supprimée : le type d'appli retombe sur le réglage général.
+    assert.equal(autoTransformFor(p, 'email'), 'polish')
+  })
+})

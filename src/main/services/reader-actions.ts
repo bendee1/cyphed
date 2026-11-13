@@ -4,6 +4,8 @@ import { IPC } from '@shared/ipc'
 import type { CaptureService } from './capture'
 import type { DictationService } from './dictation'
 import { copySelection } from './insertion'
+import { captureForeground } from './context'
+import { isTerminalApp } from './command-core'
 import type { ReaderService } from './reader'
 import { tm } from '../lang'
 
@@ -40,7 +42,8 @@ export class ReaderActions {
       this.deps.reader.stopSpeak()
       return
     }
-    const selected = (await copySelection()).trim()
+    // Dans un terminal, Ctrl+C interromprait le programme en cours : on lit le texte déjà copié.
+    const selected = foregroundIsTerminal() ? '' : (await copySelection()).trim()
     await this.run(selected ? 'selection' : 'clipboard', selected)
   }
 
@@ -58,6 +61,10 @@ export class ReaderActions {
         const preview = await this.deps.capture.start(this.deps.capturePreload, this.deps.hub)
         if (!preview) return
         await this.readAndSpeak('read', { kind: 'zone' })
+        return
+      }
+      if (action !== 'clipboard' && !alreadySelected && foregroundIsTerminal()) {
+        dictation.notify(tm('bar.tfTerminal'))
         return
       }
       let text = action === 'clipboard' ? clipboard.readText() : alreadySelected || (await copySelection())
@@ -85,6 +92,7 @@ export class ReaderActions {
     dictation.showBarState({ phase: 'processing', level: 0, message: action === 'summarize' ? tm('bar.summarizing') : tm('bar.preparing') })
     const result = await reader.run(action, source)
     if (!hub.isDestroyed()) hub.webContents.send(IPC.hubInvalidate)
+    if (dictation.isActive()) return // une dictée a commencé pendant la préparation : ne pas parler par-dessus
     const note = cut ? tm('bar.tooLong') : result.fallback ? tm('bar.partialTranslation') : ''
     dictation.showBarState({ phase: 'tip', level: 0, message: tm('bar.reading', { note }) })
     setTimeout(() => {
@@ -93,5 +101,14 @@ export class ReaderActions {
     void reader.speak(result.text).catch((err) => {
       dictation.notify(err instanceof Error ? err.message : tm('bar.speakFail'))
     })
+  }
+}
+
+/** Ctrl+C dans un terminal interrompt le programme en cours : jamais de copie simulée là. */
+function foregroundIsTerminal(): boolean {
+  try {
+    return isTerminalApp(captureForeground().processName)
+  } catch {
+    return false
   }
 }

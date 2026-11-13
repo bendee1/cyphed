@@ -21,6 +21,8 @@ export type Hotkeys = {
   /** Capture du prochain raccourci demandé par le Hub (clavier ou bouton de souris). */
   beginCapture: () => void
   cancelCapture: () => void
+  /** Raccourci de dictée choisi (celui enregistré par `bind`, même si Windows l'a refusé : la barre le signale alors). */
+  active: () => string
 }
 
 type Deps = {
@@ -35,6 +37,7 @@ export function createHotkeys({ hub, dictation, transformer, readQuick }: Deps):
   let current = loadSettings().hotkey
   let capturing = false
   const mouse = new MouseBindings(isKeyDown)
+  const registered = new Set<string>()
 
   /** Raccourci clavier (Electron) ou bouton de souris (crochet Windows). */
   function register(id: string, accelerator: string, run: () => void): boolean {
@@ -43,14 +46,18 @@ export function createHotkeys({ hub, dictation, transformer, readQuick }: Deps):
       return mouse.set(id, accelerator, run)
     }
     try {
-      return globalShortcut.register(accelerator, run)
+      const ok = globalShortcut.register(accelerator, run)
+      if (ok) registered.add(accelerator)
+      return ok
     } catch {
       return false
     }
   }
 
+  /** Retire seulement les raccourcis posés ici : Échap, posé par la dictée en cours, doit rester. */
   function clear(): void {
-    globalShortcut.unregisterAll()
+    for (const accelerator of registered) globalShortcut.unregister(accelerator)
+    registered.clear()
     mouse.clear()
   }
 
@@ -61,7 +68,7 @@ export function createHotkeys({ hub, dictation, transformer, readQuick }: Deps):
     isActive: () => dictation.isActive(),
     toggle: () => dictation.toggle(),
     onHeld: (ms) => {
-      if (ms >= 60_000) dictation.tip('hands-free', 'Astuce : un appui bref sur le raccourci passe en mains libres, plus besoin de le tenir.')
+      if (ms >= 60_000) dictation.tip('hands-free', tm('tip.handsFree'))
     },
     setInterval: (fn, ms) => setInterval(fn, ms),
     clearInterval: (handle) => clearInterval(handle as NodeJS.Timeout)
@@ -160,6 +167,7 @@ export function createHotkeys({ hub, dictation, transformer, readQuick }: Deps):
         })
       }
     },
+    active: () => current,
     cancelCapture() {
       if (capturing) endCapture({ ok: false, reason: 'cancel' })
     }

@@ -15,6 +15,7 @@ import type { SttProvider } from '../providers/stt'
 import { styleCategory } from '../providers/cleanup-prompt'
 import { getDb } from '../db'
 import { applyPersonalization, dictionaryTerms, isBlockedApp, loadPersonalization } from './personalization'
+import { autoTransformFor } from './personalization-core'
 import { getAnthropicKey, getCerebrasKey, getDeepgramKey, getElevenLabsKey, getMistralKey, useMockStt } from '../secrets'
 import { captureForeground } from './context'
 import { copyPrivate, copySelection, insertText, pressEnter, undoLastInsert } from './insertion'
@@ -74,7 +75,7 @@ export class DictationService {
       if (!this.hub.isDestroyed()) this.hub.webContents.send(IPC.hubInvalidate)
       const first = added[0]
       if (first?.replacement) {
-        this.tip('learned', `Appris : « ${first.replacement} » au lieu de « ${first.term} ». Valide-le dans Dictionnaire.`)
+        this.tip('learned', tm('tip.learned', { replacement: first.replacement, term: first.term }))
       }
     })
     this.purgeAudio()
@@ -105,6 +106,7 @@ export class DictationService {
       saveAudio: (id, chunks) => {
         if (loadSettings().keepAudio) this.audio.save(id, chunks)
       },
+      keepsAudio: () => loadSettings().keepAudio,
       // Plus d'attente fixe : insertText relâche lui-même les touches encore tenues avant Ctrl+V.
       insert: (text, target) => insertText(text, target?.hwnd, target?.hwndFocus),
       pressEnter: () => pressEnter(),
@@ -150,9 +152,10 @@ export class DictationService {
       },
       route: (spoken, selected) => this.anthropic.routeSelection(selected, spoken, 2500),
       captureContext: async () => {
-        if (!loadPersonalization().readContext) return null
+        // Le champ mot de passe se reconnaît toujours (rien ne part ni n'est gardé), même si la lecture du contexte est coupée.
         const snap = await this.uia.focus(700)
         if (snap?.password) return { context: { before: '', selected: '', after: '' }, sensitive: true }
+        if (!loadPersonalization().readContext) return null
         if (!snap || !snap.supported) return null
         const known = dictionaryTerms(loadPersonalization())
         const screenTerms = extractScreenTerms(snap.text ?? `${snap.before}${snap.selected}${snap.after}`, { known })
@@ -211,10 +214,12 @@ export class DictationService {
   /** Nettoyage d'une dictée : Haiku, relais Cerebras, puis dictionnaire et snippets. */
   private cleanup: DictationHost['cleanup'] = async (input, timeoutMs) => {
     const personal = loadPersonalization()
-    const level = loadSettings().cleanupLevel
+    const settings = loadSettings()
+    const level = settings.cleanupLevel
     // Réglage « Aucun » : le texte de la transcription, avec seulement dictionnaire et snippets.
     if (level === 'none') return { text: applyPersonalization(input.rawText, personal), usedModel: false, latencyMs: null }
     const category = styleCategory(input.app, input.windowTitle)
+    const transformId = autoTransformFor(personal, category)
     const started = Date.now()
     const language = effectiveLanguage(input.language, input.rawText)
     const full = {
@@ -225,9 +230,11 @@ export class DictationService {
       history: this.history.recent(input.app, Date.now(), input.windowTitle),
       terms: dictionaryTerms(personal),
       tone: category === 'code' || category === 'ai' ? undefined : personal.styles[category],
-      transform: personal.transforms.find((t) => t.id === personal.autoTransform)?.prompt,
+      transform: personal.transforms.find((t) => t.id === transformId)?.prompt,
       voiceProfile: personal.voiceProfileEnabled ? personal.voiceProfile : '',
-      light: level === 'light'
+      light: level === 'light',
+      // « Écrire en » : traduire seulement si la langue dite n'est pas déjà celle voulue.
+      ...(settings.outputLanguage && settings.outputLanguage !== language ? { translateTo: settings.outputLanguage } : {})
     }
     // Modèle choisi dans Réglages : un modèle compatible OpenAI (DeepSeek, Ollama…) s'il est configuré, sinon Claude Haiku, sinon Cerebras.
     const useOpenAi = Boolean(openAiCompatConfig())
@@ -253,7 +260,7 @@ export class DictationService {
     return {
       ...result,
       text: applyPersonalization(result.text, personal),
-      ...(result.transformed ? { transform: personal.autoTransform } : {})
+      ...(result.transformed ? { transform: transformId } : {})
     }
   }
 
@@ -264,6 +271,24 @@ export class DictationService {
     } catch (err) {
       console.warn('[audio] purge impossible', err instanceof Error ? err.message : err)
     }
+    this.purgeHistory()
+  }
+
+  /** Réglage « garder l'historique N jours » : ce qui est plus ancien est effacé. */
+  private purgeHistory(): void {
+    const days = loadSettings().historyDays
+    if (!days) return
+    try {
+      const removed = getDb().deleteBefore(new Date(Date.now() - days * 86_400_000).toISOString())
+      if (removed) console.log(`[history] ${removed} dictées de plus de ${days} jours effacées`)
+    } catch (err) {
+      console.warn('[history] purge impossible', err instanceof Error ? err.message : err)
+    }
+  }
+
+  /** Après un changement de durée de l'historique ou de l'audio. */
+  purgeOld(): void {
+    this.purgeAudio()
   }
 
   /** Réglage « ne pas garder l'audio » : tout ce qui est sur le disque part. */
@@ -476,7 +501,11 @@ export class DictationService {
     return undoLastInsert()
   }
 
+  /** Appelé quand une dictée démarre (coupe la lecture à voix haute : le micro l'entendrait). */
+  onStart: (() => void) | null = null
+
   toggle(kind: 'dictation' | 'command' = 'dictation'): Promise<void> {
+    if (!this.isActive()) this.onStart?.()
     return this.machine.toggle(kind)
   }
 

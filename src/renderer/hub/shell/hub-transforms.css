@@ -75,3 +75,41 @@
 .cy .cy-form-col .cy-form-submit {
   justify-self: end;
 }
+
+/* Transformation automatique par type d'appli */
+.cy .cy-byapp-title {
+  margin-top: 36px;
+}
+.cy-byapp-sub {
+  margin: 4px 0 14px;
+  max-width: 680px;
+  color: var(--cy-muted);
+  font-size: 14px;
+}
+.cy-byapp {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px 24px;
+}
+.cy-byapp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--cy-line);
+  border-radius: 10px;
+  background: var(--cy-panel);
+}
+.cy-byapp-row span {
+  display: grid;
+  min-width: 0;
+}
+.cy-byapp-row small {
+  color: var(--cy-muted);
+  font-size: 12px;
+}
+.cy .cy-byapp-row .cy-select {
+  width: 190px;
+  flex: none;
+}

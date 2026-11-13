@@ -41,8 +41,8 @@ function retryable(message: string): Error {
 /** Erreur réseau de Node -> message lisible. */
 function networkMessage(err: unknown): string {
   const code = (err as { code?: string } | null)?.code ?? ''
-  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ENETUNREACH|ECONNRESET|ETIMEDOUT/.test(code)) return 'Pas de connexion internet'
-  return err instanceof Error && err.message ? `ElevenLabs : ${err.message.slice(0, 80)}` : 'ElevenLabs injoignable'
+  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ENETUNREACH|ECONNRESET|ETIMEDOUT/.test(code)) return tm('err.offline')
+  return err instanceof Error && err.message ? `ElevenLabs : ${err.message.slice(0, 80)}` : tm('err.unreachable', { name: 'ElevenLabs' })
 }
 
 function abortError(): Error {
@@ -190,7 +190,7 @@ export async function transcribeWavScribe(
   }
   if (res.status === 401 || res.status === 403) throw new Error(tm('prov.eleven.refused'))
   if (res.status === 402) throw new Error(tm('prov.eleven.credit'))
-  if (!res.ok) throw new Error(`ElevenLabs indisponible (${res.status})`)
+  if (!res.ok) throw new Error(tm('err.unavailable', { name: 'ElevenLabs', status: String(res.status) }))
   const json = (await res.json()) as { text?: string }
   return dropFalseStarts(json.text ?? '')
 }

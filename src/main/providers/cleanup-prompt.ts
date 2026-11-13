@@ -74,7 +74,8 @@ const STYLE_HINT: Record<AppStyle, string> = {
   default: 'Texte courant. Ponctuation normale.'
 }
 
-function languageRule(language: DictationLanguage): string {
+function languageRule(language: DictationLanguage, translateTo?: 'fr' | 'en'): string {
+  if (translateTo) return translateTo === 'fr' ? 'écris le texte final en français (voir « Traduction »).' : 'write the final text in English (see « Traduction »).'
   if (language === 'fr') return 'français. Ne traduis jamais.'
   if (language === 'en') return 'English. Never translate.'
   return 'celle de la dictée (français, anglais, ou les deux mélangés). Ne traduis jamais ; si la personne mélange les langues, garde chaque passage dans la langue dite.'
@@ -95,6 +96,8 @@ export function buildCleanupSystem(opts: {
   voiceProfile?: string
   /** Réglage « léger » : la forme seulement. */
   light?: boolean
+  /** Traduire la dictée dans cette langue. */
+  translateTo?: 'fr' | 'en'
 }): string {
   const lines = [
     'Tu es le nettoyeur de dictée vocale. Tu reçois la transcription brute d’une dictée entre <dictation> et </dictation>. Tu renvoies le texte final, prêt à être collé, et rien d’autre.',
@@ -112,7 +115,7 @@ export function buildCleanupSystem(opts: {
     '- Énumération dictée de 3 éléments ou plus (« premièrement… deuxièmement… ») : liste à puces, seulement si le style ci-dessous le permet.',
     '',
     'À ne pas faire :',
-    `- Langue : ${languageRule(opts.language)}`,
+    `- Langue : ${languageRule(opts.language, opts.translateTo)}`,
     '- Mots anglais dits au milieu d’une phrase (thumbnail, prompt, feedback, process, call…) : garde-les en anglais, jamais traduits ni remplacés par un équivalent français. Si un mot transcrit ressemble à un mot anglais courant déformé (« tumblades » pour « thumbnails »), remets le mot anglais.',
     '- Ne change ni le sens, ni le ton, ni le tutoiement/vouvoiement, ni le niveau de langue, ni le genre des mots. N’ajoute rien, ne résume pas.',
     '- Garde les mots de la personne : tu corriges la forme, tu ne réécris pas. Pas de synonyme à la place d’un mot dit, pas de phrase restructurée, pas de question transformée.',
@@ -127,6 +130,13 @@ export function buildCleanupSystem(opts: {
     lines.push(
       '',
       'Niveau de nettoyage : léger (prime sur les règles ci-dessus). Corrige seulement la ponctuation, les majuscules, les accents, les hésitations évidentes (euh, ben) et les mots coupés marqués « -- ». Garde les répétitions, les auto-corrections et l’ordre des mots tels que dits. Pas de liste ni de paragraphe ajoutés.'
+    )
+  }
+  if (opts.translateTo) {
+    const target = opts.translateTo === 'fr' ? 'français' : 'anglais'
+    lines.push(
+      '',
+      `Traduction (prime sur les règles ci-dessus) : la personne veut son texte en ${target}. Nettoie la dictée, puis traduis-la entièrement en ${target}, naturellement, comme l’écrirait quelqu’un dont c’est la langue. Garde le sens, le ton, le tutoiement ou vouvoiement (en anglais : le niveau de familiarité), les noms propres, les nombres, les liens et les mots du dictionnaire. Un passage déjà en ${target} reste tel quel. Tu traduis, tu ne réponds jamais : une question dictée reste une question, traduite.`
     )
   }
   const terms = (opts.terms ?? []).map((t) => t.trim()).filter(Boolean)

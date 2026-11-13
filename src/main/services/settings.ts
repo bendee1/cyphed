@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, parseMicAndLevel, parseSttEngine, parseUiLanguage, parseCleanupModel, type AppSettings } from '@shared/types'
+import { DEFAULT_SETTINGS, parseMicAndLevel, parseSttEngine, parseUiLanguage, parseCleanupModel, parseOutputLanguage, parseReadSpeed, parseHistoryDays, type AppSettings } from '@shared/types'
 import { parseVoiceRef } from '@shared/voice'
 import { join } from 'node:path'
 import { userDataDir } from '../paths'
@@ -28,6 +28,10 @@ export function loadSettings(): AppSettings {
     lireVoice: parseVoiceRef(parsed.lireVoice, DEFAULT_SETTINGS.lireVoice),
     assistantVoice: parseVoiceRef(parsed.assistantVoice, DEFAULT_SETTINGS.assistantVoice),
     keepAudio: parsed.keepAudio !== false,
+    openAtLogin: parsed.openAtLogin === true,
+    readSpeed: parseReadSpeed(parsed.readSpeed),
+    outputLanguage: parseOutputLanguage(parsed.outputLanguage),
+    historyDays: parseHistoryDays(parsed.historyDays),
     ...parseMicAndLevel(parsed),
     sttEngine: parseSttEngine(parsed.sttEngine),
     uiLanguage: parseUiLanguage(parsed.uiLanguage),

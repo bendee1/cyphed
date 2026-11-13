@@ -1,6 +1,7 @@
+import { applyOpenAtLogin } from '../startup'
 import { ipcMain } from 'electron'
 import { IPC, type HubSettingsSave } from '@shared/ipc'
-import { DEFAULT_SETTINGS, parseMicAndLevel, parseSttEngine, parseUiLanguage, parseCleanupModel, type AppSettings, type RecordingMode } from '@shared/types'
+import { DEFAULT_SETTINGS, parseMicAndLevel, parseSttEngine, parseUiLanguage, parseCleanupModel, parseOutputLanguage, parseReadSpeed, parseHistoryDays, type AppSettings, type RecordingMode } from '@shared/types'
 import { applyHotkeyChange } from '@shared/hotkey'
 import { parseVoiceRef } from '@shared/voice'
 import {
@@ -39,6 +40,10 @@ function parseSettings(raw: unknown): AppSettings | null {
     lireVoice: parseVoiceRef(value.lireVoice, DEFAULT_SETTINGS.lireVoice),
     assistantVoice: parseVoiceRef(value.assistantVoice, DEFAULT_SETTINGS.assistantVoice),
     keepAudio: value.keepAudio !== false,
+    openAtLogin: value.openAtLogin === true,
+    readSpeed: parseReadSpeed(value.readSpeed),
+    outputLanguage: parseOutputLanguage(value.outputLanguage),
+    historyDays: parseHistoryDays(value.historyDays),
     ...parseMicAndLevel(value),
     sttEngine: parseSttEngine(value.sttEngine),
     uiLanguage: parseUiLanguage(value.uiLanguage),
@@ -83,6 +88,7 @@ export function registerSettingsIpc(ctx: MainContext): void {
         })
       )
       saveSettings(next)
+      if (next.openAtLogin !== previous.openAtLogin) applyOpenAtLogin(next.openAtLogin)
       if (next.uiLanguage !== previous.uiLanguage) {
         // Nouvelle langue : les fenêtres ouvertes se rechargent (après la réponse, sinon le Hub s'interrompt avant de la lire),
         // et le menu de la zone de notification est repeint plus bas avec le bon texte.
@@ -99,6 +105,7 @@ export function registerSettingsIpc(ctx: MainContext): void {
         }
       }
       if (previous.keepAudio && !next.keepAudio) ctx.dictation.forgetAudio()
+      if (next.historyDays !== previous.historyDays) ctx.dictation.purgeOld()
       tray.paint(next.hotkey)
       invalidateHub(ctx)
       console.log(`[settings] ${next.hotkey} ${next.language} ${next.mode} dg=${Boolean(getDeepgramKey())} cb=${Boolean(getCerebrasKey())} mi=${Boolean(getMistralKey())} el=${Boolean(getElevenLabsKey())}`)

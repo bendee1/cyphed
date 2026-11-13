@@ -34,6 +34,7 @@ export const IPC = {
   hubStatus: 'hub:status',
   hubInvalidate: 'hub:invalidate',
   hubInstallUpdate: 'hub:install-update',
+  hubExportHistory: 'hub:export-history',
   hubGetSettings: 'hub:settings',
   hubSaveSettings: 'hub:save-settings',
   hubListVoices: 'hub:voices',
@@ -126,6 +127,8 @@ export type TtsPlayPayload = {
   id: string
   mime: string
   data: ArrayBuffer
+  /** Vitesse de lecture (1 = normale). */
+  rate?: number
 }
 
 export type CapturePreview = {
@@ -194,6 +197,8 @@ export type HubPreloadApi = {
   getStatus: () => Promise<HubStatus>
   /** Redémarre Cyphed sur la version prête. */
   installUpdate?: () => Promise<boolean>
+  /** Enregistre toutes les dictées dans un fichier choisi (texte ou JSON). */
+  exportHistory?: () => Promise<{ ok: true; count: number } | { ok: false; cancelled?: boolean; error?: string }>
   onInvalidate: (handler: () => void) => () => void
   getSettings: () => Promise<HubSettings>
   saveSettings: (payload: HubSettingsSave) => Promise<HubSettingsResult>

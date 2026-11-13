@@ -62,8 +62,12 @@ export type DictationHost = {
   pressEnter?: () => void
   /** Délai avant le message « ça prend du temps » dans la barre (4 s par défaut). */
   slowNoticeMs?: number
+  /** Délai avant « micro muet » pendant l'écoute (5 s par défaut). */
+  muteNoticeMs?: number
   /** Garde l'audio d'une dictée (WAV local) pour pouvoir la réessayer. */
   saveAudio?: (id: string, chunks: Buffer[]) => void
+  /** Faux si le réglage « garder l'audio » est coupé : une dictée ratée ne peut alors pas être refaite. */
+  keepsAudio?: () => boolean
   /** Ouvre à l'avance la connexion au modèle de nettoyage, pendant la fin de transcription. */
   warmUp?: () => void
   showBar: () => void
@@ -78,6 +82,8 @@ type MicAck = 'ready' | 'stopped'
 
 /** Une dictée oubliée en mains libres s'arrête seule (et colle ce qui a été dit). */
 export const MAX_DICTATION_MS = 20 * 60 * 1000
+/** En dessous de ce niveau, le micro n'a rien capté (même seuil que « micro muet » à la fin). */
+const MUTE_LEVEL = 1e-5
 const MAX_RECORDING_BYTES = (MAX_DICTATION_MS / 1000 + 5) * 16000 * 2
 /** En dessous d'une demi-seconde d'audio, il n'y a rien à réessayer. */
 const MIN_RETRY_BYTES = 16000
@@ -140,6 +146,8 @@ export class DictationMachine {
   private captureReady = false
   /** Plus fort niveau micro de la dictée : 0 = micro muet (aucun échantillon non nul). */
   private peakLevel = 0
+  /** Vrai pendant que la barre affiche « micro muet » en pleine écoute. */
+  private muteShown = false
   /** Échap pendant le traitement : rien ne sera collé. */
   private cancelled = false
   /** Audio de la dictée en cours, gardé pour « Réessayer ». */
@@ -147,6 +155,8 @@ export class DictationMachine {
   private recordingBytes = 0
   /** Deepgram injoignable : la dictée continue hors ligne, l'audio est gardé pour plus tard. */
   private offlineReason: string | null = null
+  /** Ouverture refusée pour de bon (clé refusée…) après le relâchement : message montré tel quel, rien n'est gardé. */
+  private openError: string | null = null
   private opening: Promise<LiveSttSession> | null = null
   /** Ouverture Deepgram encore en cours quand la personne a relâché : stop() la récupère au lieu de la jeter. */
   private lateOpen: Promise<LiveSttSession> | null = null
@@ -222,6 +232,17 @@ export class DictationMachine {
     this.abortHandshake()
     this.failAck('ready', err)
     this.failAck('stopped', err)
+    if (this.phase === 'listening' && this.canKeepFailed()) {
+      // Micro perdu en pleine dictée (casque débranché) : ce qui a été dit reste à réessayer.
+      this.generation += 1
+      this.closeStt()
+      this.prebuffer.clear()
+      this.captureReady = false
+      this.phase = 'stopping'
+      this.timings.stopMs = this.host.now()
+      void this.persistFailed(err.message)
+      return
+    }
     if (this.phase === 'starting' || this.phase === 'listening') {
       this.generation += 1
       this.closeStt()
@@ -249,6 +270,11 @@ export class DictationMachine {
 
   onAudioLevel(level: number): void {
     if (this.phase === 'starting' || this.phase === 'listening') this.peakLevel = Math.max(this.peakLevel, level)
+    if (this.muteShown && this.phase === 'listening' && level >= MUTE_LEVEL) {
+      // Le son revient : la barre repasse en écoute normale.
+      this.muteShown = false
+      this.host.sendState({ phase: 'listening', level }, 'all')
+    }
     if (!this.captureReady) return
     if (this.phase !== 'starting' && this.phase !== 'listening') return
     this.host.sendState({ phase: 'listening', level }, 'bar')
@@ -354,6 +380,7 @@ export class DictationMachine {
     this.recording = []
     this.recordingBytes = 0
     this.offlineReason = null
+    this.openError = null
     this.contextPromise = this.host.captureContext ? this.host.captureContext().catch(() => null) : null
     this.phase = 'starting'
     this.captureReady = false
@@ -376,6 +403,7 @@ export class DictationMachine {
       if (this.generation !== gen) return
       this.captureReady = true
       this.host.sendState({ phase: 'listening', level: 0 }, 'all')
+      this.watchMute(gen)
       const limit = setTimeout(() => {
         if (this.generation === gen && (this.phase === 'listening' || this.phase === 'starting')) void this.stop()
       }, MAX_DICTATION_MS)
@@ -434,8 +462,12 @@ export class DictationMachine {
     const pending = this.lateOpen
     if (!pending || this.stt) return
     let timer: NodeJS.Timeout | undefined
+    let failure: unknown = null
     const session = await Promise.race([
-      pending.catch(() => null),
+      pending.catch((err: unknown) => {
+        failure = err
+        return null
+      }),
       new Promise<null>((resolve) => {
         timer = setTimeout(() => resolve(null), maxMs)
       })
@@ -447,6 +479,10 @@ export class DictationMachine {
       this.timings.sttOpenMs = this.host.now()
       return
     }
+    // Ouverture ratée ou trop lente après le relâchement : garder la vraie raison (clé refusée, pas de réseau),
+    // pour que la dictée soit gardée à réessayer au lieu d'un « rien entendu ».
+    if (failure && !isRetryable(failure)) this.openError = failure instanceof Error ? failure.message : String(failure)
+    else this.offlineReason ??= failure instanceof Error ? failure.message : tm('bar.dgLostShort')
     this.abortHandshake()
     void pending.then((late) => late.close(), () => undefined)
   }
@@ -508,8 +544,9 @@ export class DictationMachine {
       return
     }
     if (!raw) {
-      const message =
-        this.peakLevel < 1e-5
+      const message = this.openError
+        ? this.openError
+        : this.peakLevel < 1e-5
           ? tm('bar.mute')
           : connectionLost
             ? tm('bar.dgLost')
@@ -642,6 +679,17 @@ export class DictationMachine {
   }
 
   /** Après 4 s de traitement, la barre dit que ça prend du temps (le spinner seul fait croire à un blocage). */
+  /** Micro muet : prévenir pendant l'écoute (après 5 s sans aucun son), plutôt qu'au relâchement. */
+  private watchMute(gen: number): void {
+    this.muteShown = false
+    const timer = setTimeout(() => {
+      if (this.generation !== gen || this.phase !== 'listening' || this.peakLevel >= MUTE_LEVEL) return
+      this.muteShown = true
+      this.host.sendState({ phase: 'listening', level: 0, message: tm('bar.muteLive') }, 'all')
+    }, this.host.muteNoticeMs ?? 5000)
+    timer.unref?.()
+  }
+
   private watchSlow(): void {
     const id = this.sessionId
     setTimeout(() => {
@@ -666,7 +714,7 @@ export class DictationMachine {
 
   /** Une dictée (pas une commande) avec assez de son pour être refaite plus tard. */
   private canKeepFailed(): boolean {
-    return this.kind === 'dictation' && !this.cancelled && this.recordingBytes >= MIN_RETRY_BYTES
+    return this.kind === 'dictation' && !this.cancelled && this.recordingBytes >= MIN_RETRY_BYTES && Boolean(this.host.saveAudio) && this.host.keepsAudio?.() !== false
   }
 
   /** La dictée n'a pas abouti : rien n'est collé, mais elle reste dans l'historique avec son audio, à réessayer. */
@@ -738,7 +786,7 @@ export class DictationMachine {
         context: capture?.context ?? null
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Commande impossible.'
+      const message = err instanceof Error ? err.message : tm('cmd.failed')
       this.host.sendState({ phase: 'error', level: 0, message }, 'all')
       this.phase = 'idle'
       this.scheduleHide(2800)
@@ -746,7 +794,7 @@ export class DictationMachine {
     }
     this.timings.cleanupMs = this.host.now()
     if (outcome.status !== 'ok') {
-      const message = outcome.status === 'unsupported' ? outcome.message : 'Rien produit, reformule.'
+      const message = outcome.status === 'unsupported' ? outcome.message : tm('cmd.empty')
       this.host.sendState({ phase: 'error', level: 0, message }, 'all')
       this.phase = 'idle'
       this.scheduleHide(3500)

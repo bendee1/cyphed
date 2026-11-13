@@ -51,7 +51,8 @@ export class OpenAiCompatCleanupProvider implements TextCleanupProvider {
         hasHistory: history.length > 0,
         hasScreenWords: (input.screenTerms ?? []).length > 0,
         voiceProfile: input.voiceProfile,
-        light: input.light
+        light: input.light,
+        translateTo: input.translateTo
       })
       const user = buildCleanupUser(input.rawText, {
         before: input.context?.before,
@@ -84,7 +85,7 @@ export class OpenAiCompatCleanupProvider implements TextCleanupProvider {
       }
       const applied = outputOrFallback(input.rawText, readChatCompletion(await res.json()))
       if (!applied.usedModel) return { ...base, text: input.rawText, usedModel: false, latencyMs: Date.now() - started, fallback: tm('prov.emptyOrCut') }
-      const guarded = guardCleanup(input.rawText, applied.text)
+      const guarded = guardCleanup(input.rawText, applied.text, input.translateTo)
       if (!guarded.ok || !isSaneCleanup(input.rawText, guarded.text)) {
         const reason = guarded.ok ? tm('prov.incoherent') : guarded.reason
         return { ...base, text: input.rawText, usedModel: false, latencyMs: Date.now() - started, fallback: reason, rejected: applied.text.slice(0, 2000) }

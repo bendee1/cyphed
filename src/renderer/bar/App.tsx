@@ -217,6 +217,11 @@ export function BarApp() {
             ) : null
           ) : error ? (
             <p className="caption">{state.message ?? t('barui.error')}</p>
+          ) : listening && state.message ? (
+            <>
+              <span className="mark-sm"><VoiceMark level={0} active /></span>
+              <p className="caption" role="alert">{state.message}</p>
+            </>
           ) : processing && state.message ? (
             <>
               <span className="mark-sm"><VoiceMark level={0} active={false} busy /></span>

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { HubSettings, HubSettingsSave, TtsVoice } from '@shared/ipc'
-import { AUDIO_KEEP_DAYS, DEFAULT_SETTINGS, type AppSettings, type RecordingMode, type SecretState, type SecretWrite, type VoiceRef } from '@shared/types'
+import { AUDIO_KEEP_DAYS, DEFAULT_SETTINGS, HISTORY_DAYS, READ_SPEEDS, type AppSettings, type RecordingMode, type SecretState, type SecretWrite, type VoiceRef } from '@shared/types'
 import { parseVoiceKey, sameVoice, voiceKey } from '@shared/voice'
 import { canSaveSettings, hubApi } from '@/lib/bridge'
 import { FuiHeading } from '@/components/fui'
-import { formatHotkey, t } from '@/lib/i18n'
+import { formatHotkey, t, uiLocale } from '@/lib/i18n'
 
 const LANGS: Array<AppSettings['language']> = ['multi', 'fr', 'en']
+const OUTPUT_LANGS: Array<AppSettings['outputLanguage']> = ['', 'fr', 'en']
 
 const UI_LANGS: Array<AppSettings['uiLanguage']> = ['auto', 'fr', 'en']
 
@@ -162,6 +163,14 @@ export function SettingsPanel({
   const [voiceError, setVoiceError] = useState('')
   const [previewing, setPreviewing] = useState<'' | 'lire' | 'assistant'>('')
   const [previewError, setPreviewError] = useState('')
+  const [exportNote, setExportNote] = useState('')
+
+  async function exportHistory(): Promise<void> {
+    const result = await hubApi()?.exportHistory?.()
+    if (!result) return
+    if (result.ok) setExportNote(t('set.history.exported', { count: result.count }))
+    else if (!result.cancelled) setExportNote(result.error ?? t('common.saveFail'))
+  }
 
   async function previewVoice(role: 'lire' | 'assistant'): Promise<void> {
     const api = hubApi()
@@ -442,6 +451,24 @@ export function SettingsPanel({
       </fieldset>
 
       <fieldset className="hub-field">
+        <legend>{t('set.output.legend')}</legend>
+        <div className="hub-seg">
+          {OUTPUT_LANGS.map((id) => (
+            <button
+              key={id || 'same'}
+              type="button"
+              aria-pressed={draft.settings.outputLanguage === id}
+              className={draft.settings.outputLanguage === id ? 'is-on' : undefined}
+              onClick={() => patchSettings({ outputLanguage: id })}
+            >
+              {t(id ? `set.lang.${id}` : 'set.output.same')}
+            </button>
+          ))}
+        </div>
+        <small>{t(draft.settings.cleanupLevel === 'none' ? 'set.output.needsCleanup' : 'set.output.hint')}</small>
+      </fieldset>
+
+      <fieldset className="hub-field">
         <legend>{t('set.ui.legend')}</legend>
         <div className="hub-seg">
           {UI_LANGS.map((id) => (
@@ -514,6 +541,55 @@ export function SettingsPanel({
           ))}
         </div>
         <small>{t('set.audio.hint')}</small>
+      </fieldset>
+
+      <fieldset className="hub-field">
+        <legend>{t('set.history.legend')}</legend>
+        <div className="hub-seg">
+          {HISTORY_DAYS.map((days) => (
+            <button
+              key={days}
+              type="button"
+              aria-pressed={draft.settings.historyDays === days}
+              className={draft.settings.historyDays === days ? 'is-on' : undefined}
+              onClick={() => {
+                const current = draft.settings.historyDays
+                const shorter = days !== 0 && (current === 0 || days < current)
+                // Raccourcir efface tout de suite les vieilles dictées : on demande d'abord.
+                if (shorter && !window.confirm(t('set.history.confirm', { days }))) return
+                patchSettings({ historyDays: days })
+              }}
+            >
+              {days ? t('set.history.days', { days }) : t('set.history.always')}
+            </button>
+          ))}
+        </div>
+        <small>{t('set.history.hint')}</small>
+        <div>
+          <button type="button" className="is-ghost" onClick={() => void exportHistory()}>{t('set.history.export')}</button>
+          {exportNote ? <small role="status"> {exportNote}</small> : null}
+        </div>
+      </fieldset>
+
+      <fieldset className="hub-field">
+        <legend>{t('set.login.legend')}</legend>
+        <div className="hub-seg">
+          {[
+            { id: true, label: t('set.login.yes') },
+            { id: false, label: t('set.login.no') }
+          ].map((item) => (
+            <button
+              key={String(item.id)}
+              type="button"
+              aria-pressed={draft.settings.openAtLogin === item.id}
+              className={draft.settings.openAtLogin === item.id ? 'is-on' : undefined}
+              onClick={() => patchSettings({ openAtLogin: item.id })}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <small>{t('set.login.hint')}</small>
       </fieldset>
 
       <label className="hub-field">
@@ -688,6 +764,24 @@ export function SettingsPanel({
         <small>{t('set.voice.lire.hint')}</small>
       </label>
 
+      <fieldset className="hub-field">
+        <legend>{t('set.speed.legend')}</legend>
+        <div className="hub-seg">
+          {READ_SPEEDS.map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              aria-pressed={draft.settings.readSpeed === speed}
+              className={draft.settings.readSpeed === speed ? 'is-on' : undefined}
+              onClick={() => patchSettings({ readSpeed: speed })}
+            >
+              {t('set.speed.value', { speed: formatSpeed(speed) })}
+            </button>
+          ))}
+        </div>
+        <small>{t('set.speed.hint')}</small>
+      </fieldset>
+
       <label className="hub-field">
         <span>{t('set.voice.assistant')}</span>
         <select
@@ -724,4 +818,8 @@ function VoicePreviewButton({ role, previewing, onPreview }: { role: 'lire' | 'a
       {active ? t('set.voice.stop') : t('set.voice.listen')}
     </button>
   )
+}
+
+function formatSpeed(speed: number): string {
+  return new Intl.NumberFormat(uiLocale, { maximumFractionDigits: 2 }).format(speed)
 }

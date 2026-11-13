@@ -4,6 +4,22 @@ import { tm } from '../lang.ts'
 export type GuardResult = { ok: true; text: string } | { ok: false; reason: string }
 
 const REPLY_OPENERS = /^(bien sûr|voici|certainement|désolé|je suis désolé|je ne peux pas|de rien|avec plaisir|as an ai|sure[,!]|of course|here is|here's)/i
+/**
+ * En traduction, une formule en tête de sortie est la traduction d'une formule dite si la dictée
+ * commence par une formule du même sens (« I can't » → « Je ne peux pas »). Groupes fr et en, mots entiers.
+ */
+const OPENER_GROUPS = [
+  "bien sûr|bien entendu|évidemment|certainement|absolument|of course|sure|certainly|absolutely|obviously",
+  "voici|voilà|here is|here's|here are",
+  "désolée?|je suis désolée?|navrée?|je suis navrée?|pardon|sorry|i'm sorry|i am sorry",
+  "je ne peux pas|je peux pas|je ne pourrai pas|je pourrai pas|impossible de|i can't|i cannot|i can not|can't|i couldn't|i could not|i won't be able|i will not be able|i'm not able|i am not able|i'm unable|i am unable",
+  "de rien|avec plaisir|je t'en prie|je vous en prie|pas de souci|pas de problème|you're welcome|with pleasure|my pleasure|no problem|no worries"
+].map((words) => new RegExp(`^(?:${words})(?![\\p{L}])`, 'iu'))
+
+function openerGroup(text: string): number {
+  const start = text.trim().replace(/’/g, "'")
+  return OPENER_GROUPS.findIndex((re) => re.test(start))
+}
 
 /** Nos balises recopiées dans la sortie : le modèle a rendu son entrée au lieu du texte. */
 const TAG_ECHO = /<\/?\s*(dictation|before|after|previous|screen_words|selected|instruction|spoken|text)\b/i
@@ -27,6 +43,12 @@ const VANISHING = new Set([
 const SMALL_NUMBERS = [
   'zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix',
   'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf', 'vingt'
+]
+
+/** Petits nombres en lettres anglaises : une dictée traduite en anglais écrit « five » pour « 5 ». */
+const SMALL_NUMBERS_EN = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'
 ]
 
 function normalizedWords(text: string): string[] {
@@ -82,11 +104,13 @@ function digitRuns(text: string): string[] {
 }
 
 /** Un nombre de la dictée est-il encore là (en chiffres, ou en lettres pour les petits) ? */
-function numberKept(run: string, text: string, outRuns: Set<string>): boolean {
+function numberKept(run: string, text: string, outRuns: Set<string>, english = false): boolean {
   if (outRuns.has(run) || text.replace(SEPARATORS, '').includes(run)) return true
   const n = Number(run)
   if (run.length <= 2 && n <= 20) {
-    return new RegExp(`(^|[^\\p{L}])${SMALL_NUMBERS[n]}($|[^\\p{L}])`, 'iu').test(text)
+    // « j'ai 1 chat » → « I have a cat » ; « 1 hour » → « une heure ».
+    const word = n === 1 ? (english ? '(?:one|an?)' : '(?:une?)') : (english ? SMALL_NUMBERS_EN : SMALL_NUMBERS)[n]
+    return new RegExp(`(^|[^\\p{L}])${word}($|[^\\p{L}])`, 'iu').test(text)
   }
   return false
 }
@@ -99,7 +123,7 @@ function linkTokens(text: string): string[] {
  * Contrôle de la sortie du modèle de nettoyage, sans appel réseau.
  * Un échec = on garde le texte brut. Un succès rend le texte, éventuellement allégé de guillemets ajoutés.
  */
-export function guardCleanup(raw: string, cleaned: string): GuardResult {
+export function guardCleanup(raw: string, cleaned: string, translateTo?: 'fr' | 'en'): GuardResult {
   const text = stripWrappingQuotes(cleaned, raw)
   if (!text) return { ok: false, reason: tm('guard.emptyOutput') }
 
@@ -109,34 +133,47 @@ export function guardCleanup(raw: string, cleaned: string): GuardResult {
     return { ok: false, reason: tm('guard.script') }
   }
 
-  if (REPLY_OPENERS.test(text) && !REPLY_OPENERS.test(raw.trim())) {
+  const sameOpener = (): boolean => {
+    const group = openerGroup(text)
+    return group >= 0 && group === openerGroup(raw)
+  }
+  if (REPLY_OPENERS.test(text) && !REPLY_OPENERS.test(raw.trim()) && !(translateTo && sameOpener())) {
     return { ok: false, reason: tm('guard.answered') }
   }
 
   const rawLang = detectLanguage(raw)
   const outLang = detectLanguage(text)
-  if ((rawLang === 'fr' && outLang === 'en') || (rawLang === 'en' && outLang === 'fr')) {
+  if (translateTo) {
+    // Traduction voulue : les mots changent, donc ni reprise ni nouveauté. Le texte doit être dans la langue visée.
+    // Un texte resté dans l'autre langue n'a pas été traduit (souvent une réponse) ; « mixed » (noms propres) passe.
+    if (outLang === (translateTo === 'fr' ? 'en' : 'fr')) return { ok: false, reason: tm('guard.translated') }
+    // Une question dictée reste une question : « tu peux m'envoyer le devis ? » → « Yes, I'll send it » est une réponse.
+    if (raw.includes('?') && !text.includes('?')) return { ok: false, reason: tm('guard.answered') }
+  } else if ((rawLang === 'fr' && outLang === 'en') || (rawLang === 'en' && outLang === 'fr')) {
     return { ok: false, reason: tm('guard.translated') }
   }
 
   const wanted = stems(raw)
   const novel = novelStems(raw, text)
-  if (wanted.length < 5) {
+  if (translateTo) {
+    // Même longueur à peu près : une réponse ajoute des phrases, une traduction non.
+    if (stems(text).length > Math.max(6, wanted.length * 1.8)) return { ok: false, reason: tm('guard.addedContent') }
+  } else if (wanted.length < 5) {
     // Dictée courte : la reprise ne dit rien. Une réponse (« De rien, content d'avoir aidé ») ajoute des mots.
     if (novel.length > 2) return { ok: false, reason: tm('guard.addedContent') }
   } else if (retention(raw, text) < MIN_RETENTION) {
     return { ok: false, reason: tm('guard.dropped') }
   }
-  if (wanted.length >= 8 && novel.length / Math.max(1, stems(text).length) > MAX_NOVELTY) {
+  if (!translateTo && wanted.length >= 8 && novel.length / Math.max(1, stems(text).length) > MAX_NOVELTY) {
     return { ok: false, reason: tm('guard.rewritten') }
   }
 
   const outDigits = new Set(digitRuns(text).map((run) => run.replace(SEPARATORS, '')))
   for (const run of digitRuns(raw)) {
-    if (numberKept(run.replace(SEPARATORS, ''), text, outDigits)) continue
+    if (numberKept(run.replace(SEPARATORS, ''), text, outDigits, translateTo === 'en')) continue
     // « le 4 1 peu » : le moteur a écrit « un » en chiffre ; chaque nombre se vérifie alors seul.
     const parts = run.split(/[\s,]+/).filter(Boolean)
-    if (parts.length > 1 && parts.every((part) => numberKept(part.replace(SEPARATORS, ''), text, outDigits))) continue
+    if (parts.length > 1 && parts.every((part) => numberKept(part.replace(SEPARATORS, ''), text, outDigits, translateTo === 'en'))) continue
     return { ok: false, reason: tm('guard.number') }
   }
 

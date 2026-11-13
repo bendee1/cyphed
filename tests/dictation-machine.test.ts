@@ -38,11 +38,11 @@ function session(): FakeSession {
 function host(overrides: Partial<DictationHost> & { openStt: DictationHost['openStt'] }): {
   host: DictationHost
   commands: string[]
-  states: Array<{ phase: string; scope: string }>
+  states: Array<{ phase: string; scope: string; message?: string }>
   inserted: string[]
 } {
   const commands: string[] = []
-  const states: Array<{ phase: string; scope: string }> = []
+  const states: Array<{ phase: string; scope: string; message?: string }> = []
   const inserted: string[] = []
   return {
     commands,
@@ -54,7 +54,7 @@ function host(overrides: Partial<DictationHost> & { openStt: DictationHost['open
         inserted.push(text)
       },
       sendState: (state, scope) => {
-        states.push({ phase: state.phase, scope })
+        states.push({ phase: state.phase, scope, message: state.message })
       },
       sendCommand: (command) => {
         commands.push(command)
@@ -158,6 +158,65 @@ describe('DictationMachine', () => {
     assert.ok(stt.closed, 'WebSocket/session must not stay orphan')
     assert.deepEqual(env.inserted, ['oui'])
     assert.equal(machine.getPhase(), 'idle')
+  })
+
+  it('clé refusée après le relâchement : le vrai message, et rien de gardé', async () => {
+    let fail!: (err: Error) => void
+    let persisted = 0
+    const env = host({
+      openStt: () =>
+        new Promise<LiveSttSession>((_resolve, reject) => {
+          fail = reject
+        }),
+      persist: () => {
+        persisted++
+      },
+      saveAudio: () => undefined
+    })
+    const machine = new DictationMachine(env.host)
+    const start = machine.toggle()
+    await pump()
+    machine.onMicReady()
+    await pump()
+    machine.onAudioLevel(0.2)
+    for (let i = 0; i < 4; i++) machine.onAudioFrame(Buffer.alloc(8000))
+    const stop = machine.toggle()
+    await pump()
+    machine.onMicStopped()
+    await pump()
+    fail(new Error('Clé Deepgram refusée'))
+    await Promise.all([start, stop])
+    assert.equal(persisted, 0)
+    assert.ok(env.states.some((s) => s.phase === 'error' && s.message === 'Clé Deepgram refusée'))
+    assert.equal(machine.getPhase(), 'idle')
+  })
+
+  it('micro muet : prévient pendant l’écoute, puis se tait quand le son revient', async () => {
+    const env = host({ openStt: async () => session(), muteNoticeMs: 20 })
+    const machine = new DictationMachine(env.host)
+    void machine.toggle()
+    await pump()
+    machine.onMicReady()
+    for (let i = 0; i < 15 && machine.getPhase() !== 'listening'; i++) await pump()
+    await new Promise((r) => setTimeout(r, 40))
+    const warned = env.states.filter((s) => s.phase === 'listening' && s.message)
+    assert.equal(warned.length, 1)
+    machine.onAudioLevel(0.2)
+    const last = env.states.at(-1)
+    assert.equal(last?.phase, 'listening')
+    assert.equal(last?.message, undefined)
+  })
+
+  it('pas d’alerte « micro muet » quand le son arrive', async () => {
+    const env = host({ openStt: async () => session(), muteNoticeMs: 20 })
+    const machine = new DictationMachine(env.host)
+    void machine.toggle()
+    await pump()
+    machine.onMicReady()
+    for (let i = 0; i < 15 && machine.getPhase() !== 'listening'; i++) await pump()
+    machine.onAudioLevel(0.1)
+    await new Promise((r) => setTimeout(r, 40))
+    assert.equal(env.states.some((s) => s.message), false)
   })
 
   it('returns to idle when saving the dictation throws', async () => {
@@ -486,6 +545,62 @@ describe('contexte, commande, vérification', () => {
     assert.equal(persisted[0].finalText, '')
     assert.equal(persisted[0].failed, 'Pas de connexion internet')
     assert.deepEqual(saved, [{ id: persisted[0].id, bytes: 32000 }])
+    assert.equal(machine.getPhase(), 'idle')
+  })
+
+  it('audio non gardé (réglage) : la panne ne promet pas « gardée », rien dans l’historique', async () => {
+    const offline = Object.assign(new Error('Pas de connexion internet'), { retryable: true })
+    let persisted = 0
+    const env = host({
+      openStt: async () => {
+        throw offline
+      },
+      persist: () => {
+        persisted++
+      },
+      saveAudio: () => undefined,
+      keepsAudio: () => false
+    })
+    const machine = new DictationMachine(env.host)
+    const start = machine.toggle()
+    await pump()
+    machine.onMicReady()
+    for (let i = 0; i < 15 && machine.getPhase() !== 'listening'; i++) await pump()
+    machine.onAudioLevel(0.2)
+    for (let i = 0; i < 4; i++) machine.onAudioFrame(Buffer.alloc(8000))
+    const stop = machine.toggle()
+    machine.onMicStopped()
+    await Promise.all([start, stop])
+    assert.equal(persisted, 0)
+    assert.equal(env.states.some((s) => /Ctrl.Alt.V/.test(s.message ?? '')), false)
+    assert.equal(machine.getPhase(), 'idle')
+  })
+
+  it('micro perdu en pleine dictée : ce qui a été dit est gardé à réessayer', async () => {
+    const persisted: Array<{ failed?: string }> = []
+    let savedBytes = 0
+    const env = host({
+      openStt: async () => session(),
+      persist: (record) => {
+        persisted.push({ failed: record.provenance?.failed })
+      },
+      saveAudio: (_id, chunks) => {
+        savedBytes = chunks.reduce((n, c) => n + c.length, 0)
+      }
+    })
+    const machine = new DictationMachine(env.host)
+    void machine.toggle()
+    await pump()
+    machine.onMicReady()
+    for (let i = 0; i < 15 && machine.getPhase() !== 'listening'; i++) await pump()
+    assert.equal(machine.getPhase(), 'listening')
+    machine.onAudioLevel(0.2)
+    for (let i = 0; i < 4; i++) machine.onAudioFrame(Buffer.alloc(8000))
+    machine.onMicError('Micro débranché')
+    for (let i = 0; i < 10; i++) await pump()
+    assert.equal(persisted.length, 1)
+    assert.equal(persisted[0].failed, 'Micro débranché')
+    assert.equal(savedBytes, 32000)
     assert.equal(machine.getPhase(), 'idle')
   })
 

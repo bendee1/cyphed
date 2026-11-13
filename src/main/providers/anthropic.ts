@@ -199,7 +199,8 @@ export class AnthropicCleanupProvider implements TextCleanupProvider {
         hasHistory: history.length > 0,
         hasScreenWords: (input.screenTerms ?? []).length > 0,
         voiceProfile: input.voiceProfile,
-        light: input.light
+        light: input.light,
+        translateTo: input.translateTo
       })
       const request = {
         model: MODEL,
@@ -241,7 +242,7 @@ export class AnthropicCleanupProvider implements TextCleanupProvider {
       let transformed = false
       if (applied.usedModel) {
         // Le nettoyage reste toujours contrôlé. La transformation (Polish…) passe ensuite par sa propre étape.
-        const guarded = guardCleanup(input.rawText, applied.text)
+        const guarded = guardCleanup(input.rawText, applied.text, input.translateTo)
         const sane = guarded.ok && isSaneCleanup(input.rawText, guarded.text)
         if (!guarded.ok || !sane) {
           const reason = guarded.ok ? tm('prov.incoherent') : guarded.reason

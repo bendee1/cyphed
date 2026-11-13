@@ -28,6 +28,8 @@ export function installTtsPlayer(): () => void {
     const blob = new Blob([new Uint8Array(payload.data)], { type: payload.mime || 'audio/mpeg' })
     objectUrl = URL.createObjectURL(blob)
     const audio = new Audio(objectUrl)
+    // Plus vite ou plus lent sans changer la hauteur de la voix (preservesPitch, vrai par défaut dans Chromium).
+    audio.playbackRate = payload.rate && payload.rate > 0 ? payload.rate : 1
     current = audio
     audio.onended = () => {
       if (current !== audio) return

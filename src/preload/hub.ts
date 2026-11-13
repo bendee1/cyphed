@@ -75,6 +75,9 @@ const api: HubPreloadApi = {
   getHistory(query) {
     return ipcRenderer.invoke('hub:history', query) as Promise<ActivityRecord[]>
   },
+  exportHistory() {
+    return ipcRenderer.invoke('hub:export-history') as ReturnType<NonNullable<HubPreloadApi['exportHistory']>>
+  },
   installUpdate() {
     return ipcRenderer.invoke('hub:install-update') as Promise<boolean>
   },

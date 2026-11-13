@@ -1,4 +1,7 @@
-import { ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
+import { writeFileSync } from 'node:fs'
+import { extname, join } from 'node:path'
+import { formatExport } from '../services/export-core'
 import { openAiCompatConfig } from '../providers/openai-compat'
 import { IPC } from '@shared/ipc'
 import { getDb } from '../db'
@@ -26,14 +29,16 @@ export function registerDataIpc(ctx: MainContext): void {
 
   ipcMain.handle(IPC.hubHistory, (event, query?: string) => {
     gate.assert(event, 'hub')
-    return getDb().listActivities(typeof query === 'string' ? query : '')
+    const q = typeof query === 'string' ? query.slice(0, 200) : ''
+    // Une recherche fouille plus loin que les 40 dernières dictées de l'accueil.
+    return getDb().listActivities(q, q.trim() ? 200 : 40)
   })
   ipcMain.handle(IPC.hubStatus, (event) => {
     gate.assert(event, 'hub')
     const current = loadSettings()
     const stats = getDb().stats()
     return {
-      hotkey: current.hotkey,
+      hotkey: hotkeys.active(),
       language: current.language,
       cerebras: Boolean(getCerebrasKey()),
       anthropic: Boolean(getAnthropicKey()),
@@ -46,6 +51,26 @@ export function registerDataIpc(ctx: MainContext): void {
       words: stats.words,
       stats,
       update: readyUpdate()
+    }
+  })
+  ipcMain.handle(IPC.hubExportHistory, async (event) => {
+    gate.assert(event, 'hub')
+    const day = new Date().toISOString().slice(0, 10)
+    const choice = await dialog.showSaveDialog(ctx.hub, {
+      title: tm('export.title'),
+      defaultPath: join(app.getPath('documents'), `cyphed-${day}.txt`),
+      filters: [
+        { name: tm('export.text'), extensions: ['txt'] },
+        { name: 'JSON', extensions: ['json'] }
+      ]
+    })
+    if (choice.canceled || !choice.filePath) return { ok: false as const, cancelled: true }
+    try {
+      const rows = getDb().exportDictations()
+      writeFileSync(choice.filePath, formatExport(rows, extname(choice.filePath).toLowerCase() === '.json' ? 'json' : 'text'), 'utf8')
+      return { ok: true as const, count: rows.length }
+    } catch (err) {
+      return { ok: false as const, error: err instanceof Error ? err.message : String(err) }
     }
   })
   ipcMain.handle(IPC.hubInstallUpdate, (event) => {
@@ -89,7 +114,7 @@ export function registerDataIpc(ctx: MainContext): void {
       )
       return { ok: true as const, text: out }
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : 'Transformation impossible.' }
+      return { ok: false as const, error: err instanceof Error ? err.message : tm('err.transform') }
     }
   })
 
@@ -106,7 +131,7 @@ export function registerDataIpc(ctx: MainContext): void {
       const suggestions = await new AnthropicCleanupProvider().suggestTerms(samples, dictionaryTerms(personal), 30000)
       return { ok: true as const, suggestions, analyzed: samples.length }
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : 'Analyse impossible.' }
+      return { ok: false as const, error: err instanceof Error ? err.message : tm('err.analysis') }
     }
   })
   ipcMain.handle(IPC.hubBuildVoiceProfile, async (event) => {
@@ -122,7 +147,7 @@ export function registerDataIpc(ctx: MainContext): void {
       const text = await new AnthropicCleanupProvider().buildVoiceProfile(samples, 30000)
       return { ok: true as const, text, analyzed: samples.length }
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : 'Analyse impossible.' }
+      return { ok: false as const, error: err instanceof Error ? err.message : tm('err.analysis') }
     }
   })
   ipcMain.handle(IPC.hubCorrect, (event, id: unknown, text: unknown) => {

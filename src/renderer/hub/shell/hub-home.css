@@ -116,6 +116,10 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.cy .cy-search {
+  margin-top: 28px;
+  max-width: 420px;
+}
 .cy-day {
   margin: 28px 0 8px;
   font-size: 13px;

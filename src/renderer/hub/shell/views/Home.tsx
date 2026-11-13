@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import type { HubStatus } from '@shared/ipc'
 import type { ActivityRecord, BarState, Insights, RecordingMode } from '@shared/types'
 import { hubApi } from '@/lib/bridge'
@@ -42,14 +42,38 @@ export function Home({ status, mode, rows, insights, barPhase, onSettings, onCha
   const [learned, setLearned] = useState('')
   const [retrying, setRetrying] = useState('')
   const [retryError, setRetryError] = useState<{ id: string; message: string } | null>(null)
+  const [query, setQuery] = useState('')
+  const [found, setFound] = useState<Row[] | null>(null)
+  // Recherche dans tout l'historique (texte, appli, titre de fenêtre), lancée après une courte pause de frappe.
+  useEffect(() => {
+    const q = query.trim()
+    if (!q) {
+      setFound(null)
+      return
+    }
+    let live = true
+    const timer = window.setTimeout(() => {
+      void hubApi()
+        ?.getHistory(q)
+        .then((list) => {
+          if (live) setFound(list)
+        })
+        .catch(() => undefined)
+    }, 200)
+    return () => {
+      live = false
+      window.clearTimeout(timer)
+    }
+  }, [query, rows])
+  const shown = found ?? rows
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>()
-    for (const row of rows) {
+    for (const row of shown) {
       const key = dayLabel(row.createdAt)
       map.set(key, [...(map.get(key) ?? []), row])
     }
     return [...map.entries()]
-  }, [rows])
+  }, [shown])
 
   async function saveCorrection(row: Row): Promise<void> {
     const text = draft.trim()
@@ -133,7 +157,19 @@ export function Home({ status, mode, rows, insights, barPhase, onSettings, onCha
       <div>
         <div>
           {learned ? <p className="cy-learned" role="status">{learned}</p> : null}
-          {groups.length === 0 ? (
+          {rows.length > 0 || query ? (
+            <input
+              type="search"
+              className="cy-input cy-search"
+              placeholder={t('home.search')}
+              aria-label={t('home.search')}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          ) : null}
+          {groups.length === 0 && query.trim() ? (
+            <EmptyState>{t('home.search.none', { query: query.trim() })}</EmptyState>
+          ) : groups.length === 0 ? (
             <EmptyState>
               {t('home.empty.none')}{' '}
               {mode === 'push_to_talk' ? t('home.empty.push') : t('home.empty.toggle')}{' '}

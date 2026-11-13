@@ -2,6 +2,7 @@ import { ipcMain, type BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { TtsAudioSink } from '../providers/tts'
 import { tm } from '../lang'
+import { loadSettings } from './settings'
 
 export function createRendererTtsSink(
   hub: BrowserWindow,
@@ -71,7 +72,7 @@ export function createRendererTtsSink(
         signal.addEventListener('abort', onAbort, { once: true })
 
         const copy = audio.data.buffer.slice(audio.data.byteOffset, audio.data.byteOffset + audio.data.byteLength)
-        hub.webContents.send(IPC.ttsPlay, { id: audio.id, mime: audio.mime, data: copy })
+        hub.webContents.send(IPC.ttsPlay, { id: audio.id, mime: audio.mime, data: copy, rate: loadSettings().readSpeed })
       })
     }
   }

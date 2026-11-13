@@ -73,12 +73,12 @@ export class CerebrasCleanupProvider implements TextCleanupProvider {
       const language = input.language ?? 'multi'
       // Ni appli ni titre de fenêtre : le secours ne reçoit que la dictée.
       const user = `Langue dictée : ${language}\n\nDictée :\n${input.rawText}`
-      const result = await cerebrasComplete(cleanupSystemPrompt(language), user, timeoutMs, 512)
+      const result = await cerebrasComplete(cleanupSystemPrompt(language, input.translateTo), user, timeoutMs, 512)
       const applied = outputOrFallback(input.rawText, result)
       const base = { latencyMs: Date.now() - started, provider: 'cerebras' as const }
       if (!applied.usedModel) return { ...base, text: input.rawText, usedModel: false, fallback: tm('prov.emptyOrCut') }
       // Même contrôle que Haiku : une réponse ou une réécriture n'est jamais collée.
-      const guarded = guardCleanup(input.rawText, applied.text.replace(/‑/g, '-'))
+      const guarded = guardCleanup(input.rawText, applied.text.replace(/‑/g, '-'), input.translateTo)
       if (!guarded.ok || !isSaneCleanup(input.rawText, guarded.text)) {
         const reason = guarded.ok ? tm('prov.incoherent') : guarded.reason
         return { ...base, text: input.rawText, usedModel: false, fallback: reason, rejected: applied.text.slice(0, 2000) }

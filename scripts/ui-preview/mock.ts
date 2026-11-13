@@ -88,11 +88,11 @@ const insights: Insights = {
 }
 
 const noop = (): void => undefined
-const phase = (params.get('phase') ?? 'hidden') as BarState['phase'] | 'processing-msg'
+const phase = (params.get('phase') ?? 'hidden') as BarState['phase'] | 'processing-msg' | 'listening-mute'
 
 const api: Record<string, unknown> = {
   getStatus: async () => ({ hotkey: 'Control+Shift+Space', language: 'multi', cerebras: true, anthropic: true, deepgram: true, mistral: false, elevenlabs: false, mock: false, count: rows.length, words: 0, stats: emptyHubStats(), update: params.get('update') }),
-  getHistory: async () => visibleRows,
+  getHistory: async (query?: string) => (query ? visibleRows.filter((r) => `${r.finalText} ${r.app}`.toLowerCase().includes(query.toLowerCase())) : visibleRows),
   getInsights: async () => insights,
   getSettings: async () => ({ settings: params.get('engine') === 'openai' ? { ...DEFAULT_SETTINGS, cleanupEngine: 'openai', openaiBaseUrl: 'https://api.deepseek.com', openaiModel: 'deepseek-flash' } : DEFAULT_SETTINGS, openai: { configured: false, source: null }, deepgram: { set: true }, cerebras: { set: true }, mistral: { set: false }, elevenlabs: { set: false }, anthropic: { set: true } }),
   getPersonalization: async () => DEFAULT_PERSONALIZATION,
@@ -109,6 +109,10 @@ const api: Record<string, unknown> = {
     if (phase === 'hidden') return noop
     if (phase === 'processing-msg') {
       handler({ phase: 'processing', level: 0, message: text('bar.slow') })
+      return noop
+    }
+    if ((phase as string) === 'listening-mute') {
+      handler({ phase: 'listening', level: 0, message: text('bar.muteLive') })
       return noop
     }
     if (phase === 'error') {

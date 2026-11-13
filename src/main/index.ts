@@ -20,6 +20,7 @@ import { setTtsAudioSink } from './providers/tts'
 import { createRendererTtsSink } from './services/tts-sink'
 import { createHotkeys } from './hotkeys'
 import { createFallbackTray, createTray } from './tray'
+import { applyOpenAtLogin, launchedAtLogin } from './startup'
 import { startAutoUpdates } from './updates'
 import { tm } from './lang'
 import { IPC } from '@shared/ipc'
@@ -138,6 +139,9 @@ async function boot(): Promise<void> {
   })
   const capturePreload = join(__dirname, '../preload/capture.js')
   const readerActions = new ReaderActions({ reader, capture, dictation, hub, capturePreload })
+  dictation.onStart = () => {
+    if (reader.speaking()) reader.stopSpeak()
+  }
   const hotkeys = createHotkeys({ hub, dictation, transformer: new TransformService(bar), readQuick: () => void readerActions.quick() })
   const tray = createTray(hub)
   const updates = startAutoUpdates((version) => {
@@ -213,11 +217,13 @@ async function boot(): Promise<void> {
       console.error('[preload] contrôle de développement échoué', describeError(err))
     }
   }
-  if (!hub.isDestroyed()) hub.show()
+  // Lancé par Windows à l'ouverture de session : Cyphed attend dans la zone de notification, sans ouvrir le Hub.
+  if (!hub.isDestroyed() && !launchedAtLogin()) hub.show()
+  applyOpenAtLogin(boot.openAtLogin)
   showBar(bar)
   booted = true
 
-  tray.create(loadSettings().hotkey)
+  tray.create(hotkeys.active())
 
   logIdleResources('ready')
   setTimeout(() => logIdleResources('idle+3s'), 3000)

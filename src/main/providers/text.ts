@@ -17,6 +17,8 @@ export type CleanupInput = {
   voiceProfile?: string
   /** Nettoyage léger : ponctuation et hésitations seulement. */
   light?: boolean
+  /** Traduire la dictée dans cette langue (réglage « Écrire en »). */
+  translateTo?: 'fr' | 'en'
 }
 
 export type CleanupResult = {

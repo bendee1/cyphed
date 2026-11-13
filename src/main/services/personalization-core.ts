@@ -8,7 +8,8 @@ import {
   type TransformEntry,
   DEFAULT_TRANSFORMS,
   LEGACY_COMMAND_HOTKEY,
-  LEGACY_POLISH_PROMPT
+  LEGACY_POLISH_PROMPT,
+  TRANSFORM_APP_CATEGORIES
 } from '../../shared/types.ts'
 
 const TONES: StyleTone[] = ['formal', 'casual', 'very_casual']
@@ -81,6 +82,14 @@ export function parsePersonalization(raw: unknown): Personalization {
   const commandHotkey = clean(input.commandHotkey, 60)
   const autoRaw = clean(input.autoTransform, 60)
   const autoTransform = transforms.some((t) => t.id === autoRaw) ? autoRaw : ''
+  const autoTransformByApp: Personalization['autoTransformByApp'] = {}
+  const byApp = input.autoTransformByApp && typeof input.autoTransformByApp === 'object' ? (input.autoTransformByApp as Record<string, unknown>) : {}
+  for (const category of TRANSFORM_APP_CATEGORIES) {
+    const value = byApp[category]
+    if (typeof value !== 'string') continue
+    // '' = aucune transformation pour ce type d'appli ; un id inconnu (transformation supprimée) est oublié.
+    if (value === '' || transforms.some((t) => t.id === value)) autoTransformByApp[category] = value
+  }
   const blocked = new Set<string>()
   for (const item of Array.isArray(input.blockedApps) ? input.blockedApps : []) {
     const name = normalizeApp(typeof item === 'string' ? item : '')
@@ -93,6 +102,7 @@ export function parsePersonalization(raw: unknown): Personalization {
     styles,
     transforms,
     autoTransform,
+    autoTransformByApp,
     blockedApps: [...blocked],
     voiceProfile: typeof input.voiceProfile === 'string' ? input.voiceProfile.trim().slice(0, 1000) : '',
     voiceProfileEnabled: input.voiceProfileEnabled !== false,
@@ -284,4 +294,10 @@ export function mergeLearned(p: Personalization, learned: DictionaryEntry[]): { 
     added.push(entry)
   }
   return { next: { ...p, dictionary: [...added, ...p.dictionary] }, added }
+}
+
+/** Transformation automatique pour ce type d'appli : son réglage propre, sinon le réglage général. Vide = aucune. */
+export function autoTransformFor(p: Personalization, category: string): string {
+  const own = (p.autoTransformByApp as Record<string, string | undefined>)[category]
+  return own !== undefined ? own : p.autoTransform
 }

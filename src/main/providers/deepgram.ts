@@ -26,14 +26,14 @@ export function deepgramStatusMessage(status: number): string {
   if (status === 401 || status === 403) return tm('prov.deepgram.refused')
   if (status === 402) return tm('prov.deepgram.credit')
   if (status === 429) return tm('prov.deepgram.busy')
-  return `Deepgram indisponible (${status})`
+  return tm('err.unavailable', { name: 'Deepgram', status: String(status) })
 }
 
 /** Erreur réseau de Node -> message lisible. */
 export function deepgramNetworkMessage(err: unknown): string {
   const code = (err as { code?: string } | null)?.code ?? ''
-  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ENETUNREACH|ECONNRESET|ETIMEDOUT/.test(code)) return 'Pas de connexion internet'
-  return err instanceof Error && err.message ? `Deepgram : ${err.message.slice(0, 80)}` : 'Deepgram injoignable'
+  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ENETUNREACH|ECONNRESET|ETIMEDOUT/.test(code)) return tm('err.offline')
+  return err instanceof Error && err.message ? `Deepgram : ${err.message.slice(0, 80)}` : tm('err.unreachable', { name: 'Deepgram' })
 }
 
 export class DeepgramSttProvider implements SttProvider {

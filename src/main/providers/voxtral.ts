@@ -32,10 +32,10 @@ export async function transcribeWavVoxtral(
       signal: AbortSignal.timeout(options.timeoutMs ?? 60_000)
     })
   } catch {
-    throw retryable('Mistral injoignable')
+    throw retryable(tm('err.unreachable', { name: 'Mistral' }))
   }
   if (res.status === 401 || res.status === 403) throw new Error(tm('prov.mistral.refused'))
-  if (res.status === 429 || res.status >= 500) throw retryable(`Mistral indisponible (${res.status})`)
+  if (res.status === 429 || res.status >= 500) throw retryable(tm('err.unavailable', { name: 'Mistral', status: String(res.status) }))
   if (!res.ok) throw new Error(tm('prov.mistral.audio', { status: res.status }))
   const json = (await res.json()) as { text?: string }
   return (json.text ?? '').trim()

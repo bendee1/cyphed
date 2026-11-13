@@ -20,6 +20,10 @@ export type ActivitiesDb = {
   updateFinalText: (id: string, text: string) => boolean
   /** Texte refait par le bouton Réessayer. */
   updateRetry: (id: string, next: Pick<ActivityRecord, 'rawText' | 'finalText' | 'words' | 'provenance'>) => boolean
+  /** Efface l'historique plus ancien que cette date (ISO). Rend le nombre de lignes effacées. */
+  deleteBefore: (isoDate: string) => number
+  /** Toutes les dictées réussies, de la plus ancienne à la plus récente (export). */
+  exportDictations: () => ActivityRecord[]
 }
 
 let db: ActivitiesDb | null = null
@@ -99,14 +103,16 @@ function buildActivitiesDb(sqlite: SqliteConn): { api: ActivitiesDb; conn: Sqlit
   const list = sqlite.prepare(`
     SELECT * FROM activities
     WHERE (
-      ? = '' OR final_text LIKE ? OR raw_text LIKE ? OR app LIKE ? OR window_title LIKE ?
-      OR kind LIKE ? OR source LIKE ?
+      ? = '' OR final_text LIKE ? ESCAPE '!' OR raw_text LIKE ? ESCAPE '!' OR app LIKE ? ESCAPE '!'
+      OR window_title LIKE ? ESCAPE '!' OR kind LIKE ? ESCAPE '!' OR source LIKE ? ESCAPE '!'
     )
     ORDER BY created_at DESC
     LIMIT ?
   `)
   const rows = sqlite.prepare("SELECT created_at, words, duration_ms, app, window_title FROM activities WHERE kind = 'dictation' ORDER BY created_at DESC LIMIT 50000")
   const getOne = sqlite.prepare('SELECT * FROM activities WHERE id = ?')
+  const deleteOld = sqlite.prepare('DELETE FROM activities WHERE created_at < ?')
+  const exportAll = sqlite.prepare("SELECT * FROM activities WHERE kind = 'dictation' AND final_text <> '' ORDER BY created_at ASC")
   const updateText = sqlite.prepare('UPDATE activities SET final_text = ?, words = ? WHERE id = ?')
   const updateProvenance = sqlite.prepare('UPDATE activities SET provenance_json = ? WHERE id = ?')
   const updateRetried = sqlite.prepare(
@@ -118,9 +124,16 @@ function buildActivitiesDb(sqlite: SqliteConn): { api: ActivitiesDb; conn: Sqlit
       insertActivity(row) {
         insert.run(...activityBind(row))
       },
+      deleteBefore(isoDate) {
+        return Number(deleteOld.run(isoDate).changes ?? 0)
+      },
+      exportDictations() {
+        return exportAll.all().map(rowToActivity)
+      },
       listActivities(query = '', limit = 40) {
         const q = query.trim()
-        const like = `%${q}%`
+        // « 100% » ou « a_b » se cherchent tels quels : % et _ ne sont pas des jokers.
+        const like = `%${q.replace(/[!%_]/g, (c) => '!' + c)}%`
         return list.all(q, like, like, like, like, like, like, limit).map(rowToActivity)
       },
       dictationRows() {

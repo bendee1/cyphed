@@ -87,7 +87,12 @@ export function registerBarIpc(ctx: MainContext): void {
   ipcMain.handle(IPC.barSetAuto, (event, id: unknown) => {
     gate.assert(event, 'bar')
     const p = loadPersonalization()
-    savePersonalization({ ...p, autoTransform: typeof id === 'string' ? id : '' })
+    try {
+      savePersonalization({ ...p, autoTransform: typeof id === 'string' ? id : '' })
+    } catch (err) {
+      ctx.dictation.notify(err instanceof Error ? err.message : String(err))
+      return
+    }
     invalidateHub(ctx)
   })
   ipcMain.on(IPC.barOpenHub, (event, view: unknown) => {

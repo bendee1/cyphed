@@ -1,9 +1,12 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { hubApi } from '@/lib/bridge'
 import { formatHotkey, t, transformDescription, transformName } from '@/lib/i18n'
+import { TRANSFORM_APP_CATEGORIES } from '@shared/types'
 import { usePersonalization } from '../usePersonalization'
 
 const COMMAND_KEY = '__command'
+const INHERIT = '__inherit'
+const NONE = '__none'
 
 export function TransformsView(): ReactElement {
   const [data, save, error] = usePersonalization()
@@ -11,6 +14,8 @@ export function TransformsView(): ReactElement {
   const [prompt, setPrompt] = useState('')
   const [creating, setCreating] = useState(false)
   const auto = data.autoTransform
+  const autoEntry = data.transforms.find((tr) => tr.id === auto)
+  const inheritedName = autoEntry ? transformName(autoEntry) : t('tf.byApp.none')
   const [capturing, setCapturing] = useState('')
 
   useEffect(() => {
@@ -96,6 +101,37 @@ export function TransformsView(): ReactElement {
             </div>
           </div>
         ))}
+      </div>
+      <h2 className="cy-h2 cy-byapp-title">{t('tf.byApp.title')}</h2>
+      <p className="cy-byapp-sub">{t('tf.byApp.sub', { name: inheritedName })}</p>
+      <div className="cy-byapp">
+        {TRANSFORM_APP_CATEGORIES.map((category) => {
+          const own = data.autoTransformByApp[category]
+          return (
+            <label key={category} className="cy-byapp-row">
+              <span>
+                <b>{t(`cat.${category}`)}</b>
+                <small>{t(`cat.${category}.hint`)}</small>
+              </span>
+              <select
+                className="cy-select"
+                value={own === undefined ? INHERIT : own === '' ? NONE : own}
+                onChange={(e) => {
+                  const next = { ...data.autoTransformByApp }
+                  if (e.target.value === INHERIT) delete next[category]
+                  else next[category] = e.target.value === NONE ? '' : e.target.value
+                  save({ ...data, autoTransformByApp: next })
+                }}
+              >
+                <option value={INHERIT}>{t('tf.byApp.inherit')}</option>
+                <option value={NONE}>{t('tf.byApp.none')}</option>
+                {data.transforms.map((tr) => (
+                  <option key={tr.id} value={tr.id}>{transformName(tr)}</option>
+                ))}
+              </select>
+            </label>
+          )
+        })}
       </div>
     </div>
   )

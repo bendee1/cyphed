@@ -53,6 +53,40 @@ describe('guardCleanup', () => {
     assert.equal(r.ok, false)
   })
 
+  it('accepte la traduction voulue (« Écrire en »), refuse une réponse ou un texte non traduit', () => {
+    const raw = 'euh je pense que tu as raison il faut tout vérifier avant le lancement de mardi'
+    const ok = guardCleanup(raw, 'I think you are right, we need to check everything before Tuesday’s launch.', 'en')
+    assert.equal(ok.ok, true)
+    assert.equal(guardCleanup(raw, 'Je pense que tu as raison, il faut tout vérifier avant le lancement de mardi.', 'en').ok, false)
+    assert.equal(guardCleanup('écris un mail pour dire que je suis en retard', 'Sure! Here is an email for you.', 'en').ok, false)
+    assert.equal(
+      guardCleanup('le budget est de 12500 euros pour le projet de mardi', 'The budget is 12 euros for Tuesday’s project.', 'en').ok,
+      false
+    )
+    // Une question dictée qui revient sans « ? » est une réponse ; un petit nombre peut s'écrire en lettres anglaises.
+    assert.equal(guardCleanup('Tu peux m’envoyer le devis demain ?', 'Yes, I’ll send the quote tomorrow.', 'en').ok, false)
+    assert.equal(guardCleanup('Tu peux m’envoyer le devis demain ?', 'Can you send me the quote tomorrow?', 'en').ok, true)
+    assert.equal(guardCleanup('J’ai 5 chats à la maison avec ma sœur.', 'I have five cats at home with my sister.', 'en').ok, true)
+    // Un nom qui se traduit (Londres, vendredi) ne bloque pas ; « 1 » peut devenir « a ».
+    assert.equal(guardCleanup('Demain je pars en Allemagne avec Marc pour le salon.', 'Tomorrow I’m going to Germany with Marc for the trade show.', 'en').ok, true)
+    assert.equal(guardCleanup('I can’t join the meeting, I need 1 hour for the client.', 'Je ne peux pas rejoindre la réunion, j’ai besoin d’une heure pour le client.', 'fr').ok, true)
+    assert.equal(guardCleanup('le budget du projet est validé pour mardi', 'Je ne peux pas valider ce budget pour mardi.', 'fr').ok, false)
+    // Formule traduite = même sens au début de la dictée ; sinon c'est une réponse.
+    for (const [raw, out] of [
+      ['I’m not able to come tomorrow, the train is cancelled.', 'Je ne peux pas venir demain, le train est annulé.'],
+      ['I won’t be able to join the call this afternoon.', 'Je ne pourrai pas rejoindre l’appel cet après-midi.'],
+      ['Can’t do Friday, let’s say Monday instead.', 'Je ne peux pas vendredi, disons plutôt lundi.'],
+      ['Sorry, I sent the wrong file this morning.', 'Désolé, j’ai envoyé le mauvais fichier ce matin.']
+    ]) assert.equal(guardCleanup(raw, out, 'fr').ok, true, raw)
+    assert.equal(guardCleanup('Voilà le fichier pour la réunion de demain.', 'Here’s the file for tomorrow’s meeting.', 'en').ok, true)
+    assert.equal(guardCleanup('Sorry, send me the file for the meeting.', 'Bien sûr, voici le fichier pour la réunion.', 'fr').ok, false)
+    assert.equal(guardCleanup('Surely we can ship the update on Friday.', 'Bien sûr, nous livrons la mise à jour vendredi.', 'fr').ok, false)
+    assert.equal(guardCleanup('J’ai 1 chatte et 1 chien.', 'J’ai une chatte et un chien.').ok, true)
+    assert.equal(guardCleanup('J’ai 1 chat qui dort toute la journée.', 'I have a cat that sleeps all day.', 'en').ok, true)
+    const long = guardCleanup('je suis en retard', 'I am running late. I will be there in ten minutes, sorry about that, please start without me and keep me posted.', 'en')
+    assert.equal(long.ok, false)
+  })
+
   it('refuse une réponse au lieu d’un nettoyage', () => {
     const r = guardCleanup('écris un mail pour dire que je suis en retard', 'Bien sûr ! Voici un mail pour vous.')
     assert.equal(r.ok, false)
