@@ -543,6 +543,8 @@ export const fr = {
   'update.bannerHint': 'Cyphed se ferme et se relance tout seul, en une minute environ.',
   'update.restart': 'Redémarrer maintenant',
   'update.restarting': 'Redémarrage…',
+  'update.cancelledDictating': 'Redémarrage annulé : une dictée a commencé. Réessaie quand elle est finie.',
+  'update.failed': 'Le redémarrage n’a pas pu se lancer. Réessaie, ou la version s’installera à la fermeture de Cyphed.',
   'tray.updateTip': 'Cyphed : version {version} prête',
   'dialog.startFail': "Cyphed n'a pas pu démarrer.\n\n{message}\n\nQuitte-le depuis l'icône de la zone de notification, puis relance-le.",
   'notice.dbUnreadable': "La base d'historique était illisible. Elle a été conservée sous {path} et une base neuve a été créée.",

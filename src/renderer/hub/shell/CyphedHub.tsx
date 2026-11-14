@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactElement } from 'react'
 import { BarChart3, BookText, Mic, NotebookPen, Scissors, Settings as SettingsIcon, PenLine, Type, Volume2 } from 'lucide-react'
-import type { HubStatus } from '@shared/ipc'
+import type { HubStatus, InstallUpdateResult } from '@shared/ipc'
 import { emptyHubStats, type BarState, type Insights, type RecordingMode } from '@shared/types'
 import { CyphedMark } from '@/components/brand/CyphedMark'
 import { hubApi } from '@/lib/bridge'
@@ -159,11 +159,23 @@ export function CyphedHub(): ReactElement {
 /** Une version téléchargée attend : on le dit, avec le bouton pour redémarrer (sinon elle s'installe à la fermeture). */
 function UpdateBanner({ version, dictating }: { version: string; dictating: boolean }): ReactElement {
   const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<'dictating' | 'failed' | null>(null)
+  // « Réessaie quand elle est finie » : le message part avec la dictée ; une autre version efface tout.
+  useEffect(() => {
+    if (!dictating) setNote((n) => (n === 'dictating' ? null : n))
+  }, [dictating])
+  useEffect(() => setNote(null), [version])
+  const settle = (result: InstallUpdateResult): void => {
+    if (result === 'started') return
+    setBusy(false)
+    setNote(result === 'none' ? null : result)
+  }
   return (
     <div className="cy-update" role="status">
       <span className="cy-update-dot" aria-hidden />
       <p>
-        <strong>{t('update.banner', { version })}</strong> {t('update.bannerHint')}
+        <strong>{t('update.banner', { version })}</strong>{' '}
+        {note === 'dictating' ? t('update.cancelledDictating') : note === 'failed' ? t('update.failed') : t('update.bannerHint')}
       </p>
       <button
         type="button"
@@ -172,17 +184,19 @@ function UpdateBanner({ version, dictating }: { version: string; dictating: bool
         aria-busy={busy}
         onClick={() => {
           setBusy(true)
+          setNote(null)
           // Le lancement de l'installeur occupe Cyphed 2 à 3 s : on laisse d'abord la page afficher « Redémarrage… ».
-          requestAnimationFrame(() =>
-            requestAnimationFrame(() => {
-              void hubApi()
-                ?.installUpdate?.()
-                .then((started) => {
-                  if (!started) setBusy(false)
-                })
-                .catch(() => setBusy(false))
-            })
-          )
+          // Deux images peintes, ou 150 ms au plus si la fenêtre ne peint pas (cachée, masquée).
+          let sent = false
+          const send = (): void => {
+            if (sent) return
+            sent = true
+            const call = hubApi()?.installUpdate?.()
+            if (!call) return settle('failed')
+            void call.then(settle).catch(() => settle('failed'))
+          }
+          requestAnimationFrame(() => requestAnimationFrame(send))
+          window.setTimeout(send, 150)
         }}
       >
         {busy ? (

@@ -183,6 +183,9 @@ export type BarTransforms = {
   category?: TransformAppCategory
 }
 
+/** Issue du clic sur « Redémarrer maintenant » : lancée (ou déjà en cours), annulée par une dictée, échouée, ou plus de version prête. */
+export type InstallUpdateResult = 'started' | 'dictating' | 'failed' | 'none'
+
 export type HubPreloadApi = {
   getInsights: () => Promise<Insights>
   getNotes: () => Promise<ScratchNote[]>
@@ -202,7 +205,7 @@ export type HubPreloadApi = {
   getHistory: (query?: string) => Promise<ActivityRecord[]>
   getStatus: () => Promise<HubStatus>
   /** Redémarre Cyphed sur la version prête. */
-  installUpdate?: () => Promise<boolean>
+  installUpdate?: () => Promise<InstallUpdateResult>
   /** Enregistre toutes les dictées dans un fichier choisi (texte ou JSON). */
   exportHistory?: () => Promise<{ ok: true; count: number } | { ok: false; cancelled?: boolean; error?: string }>
   onInvalidate: (handler: () => void) => () => void

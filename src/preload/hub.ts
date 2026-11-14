@@ -79,7 +79,7 @@ const api: HubPreloadApi = {
     return ipcRenderer.invoke('hub:export-history') as ReturnType<NonNullable<HubPreloadApi['exportHistory']>>
   },
   installUpdate() {
-    return ipcRenderer.invoke('hub:install-update') as Promise<boolean>
+    return ipcRenderer.invoke('hub:install-update') as ReturnType<NonNullable<HubPreloadApi['installUpdate']>>
   },
   getStatus() {
     return ipcRenderer.invoke('hub:status') as Promise<HubStatus>
