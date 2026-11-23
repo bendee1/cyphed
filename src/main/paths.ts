@@ -34,7 +34,7 @@ export function projectRoot(): string {
 /** Logo Cyphed (.ico, 16 à 256 px) : livré dans les ressources (brand/), pris dans le kit en développement. */
 export function brandIconPath(): string {
   const app = electronApp()
-  return app?.isPackaged ? join(process.resourcesPath, 'brand', 'cyphed.ico') : join(projectRoot(), 'cyphed-logo-kit', 'parle', 'windows', 'cyphed.ico')
+  return app?.isPackaged ? join(process.resourcesPath, 'brand', 'cyphed.ico') : join(projectRoot(), 'assets', 'brand', 'cyphed.ico')
 }
 
 export function legacyProjectUserDataDir(): string {

@@ -11,7 +11,7 @@ type Props = {
   waveRef?: RefObject<HTMLElement | null>
 }
 
-// Logo « Le C qui parle » (cyphed-logo-kit/parle/mark.mjs) : ses 5 barres rouges servent de vumètre.
+// Logo « Le C qui parle » (assets/brand) : ses 5 barres rouges servent de vumètre.
 const RING = 'M63.07 28.85A25 25 0 1 0 63.07 67.15'
 const BARS: Array<[number, number, number]> = [
   [42, 39.2, 17.6],

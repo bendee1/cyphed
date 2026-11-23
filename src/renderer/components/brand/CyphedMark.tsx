@@ -8,7 +8,7 @@ export interface CyphedMarkProps extends SVGProps<SVGSVGElement> {
   title?: string
 }
 
-// Logo « Le C qui parle ». Géométrie tirée de cyphed-logo-kit/parle/mark.mjs (taille normale) : la changer là-bas.
+// Logo « Le C qui parle ». Même géométrie que assets/brand/cyphed-mark-*.svg (taille normale).
 const RING = 'M63.07 28.85A25 25 0 1 0 63.07 67.15'
 const BARS: Array<[number, number, number]> = [
   [42, 39.2, 17.6],

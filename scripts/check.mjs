@@ -11,8 +11,11 @@ const wantTest = all || args.has('--test')
 const wantBuild = all || args.has('--build')
 
 function run(cmd, argv) {
-  console.log(`$ ${cmd} ${argv.join(' ')}`)
-  const result = spawnSync(cmd, argv, { cwd: root, stdio: 'inherit', shell: true })
+  // Une seule ligne de commande : le shell sert à trouver npx.cmd sous Windows, et Node refuse
+  // désormais les arguments séparés avec shell: true (DEP0190). Les arguments viennent d'ici, pas de l'extérieur.
+  const line = [cmd, ...argv].map((a) => (/\s/.test(a) ? `"${a}"` : a)).join(' ')
+  console.log(`$ ${line}`)
+  const result = spawnSync(line, { cwd: root, stdio: 'inherit', shell: true })
   if (result.status) process.exit(result.status)
 }
 
