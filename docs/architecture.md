@@ -18,7 +18,7 @@ If a call is not declared in `src/shared/` and exposed by the preload of that wi
 | main | Lifecycle, shortcuts (keyboard and mouse), speech to text, cleanup, command mode, Win32 paste, SQLite, tray, windows, OCR, vision, text to speech |
 | `mouse-helper.exe` | Global mouse hook for Mouse3/4/5 shortcuts, in its own process: Windows waits for a low-level hook before moving the pointer, so it must never depend on Electron's main thread. Gets the buttons to swallow on stdin, reports presses on stdout. No network |
 | `uia-helper.exe` | Reads the focused text field with UI Automation: text before and after the cursor, selection, editable, password. No network, no disk writes |
-| `pocket-serve.py` | Offline voice for "Read" (Pocket TTS by Kyutai), only when running from source (`npm run build:voice` or `CYPHED_VOICE_DIR`), not in the installer; started on first use, stopped after 10 idle minutes |
+| `pocket-serve.py` | Offline voice for "Read" (Pocket TTS by Kyutai). The installer ships this script but not the voice itself (Python and model, about 1 GB): build it from source with `npm run build:voice`, or point `CYPHED_VOICE_DIR` at one, which also works for the installed app. Started on first use, stopped after 10 idle minutes |
 | renderer `bar` | Microphone (raw PCM), the dictation badge and its menus |
 | renderer `hub` | Dictations, Stats, Dictionary, Expansions, Style, Rewrites, Notes, Read aloud, Settings |
 | renderer `capture` | Screen area picker, created on demand |
@@ -31,7 +31,7 @@ src/main/
   hotkeys.ts          dictation, rewrites, re-paste, undo, command mode, mouse buttons
   tray.ts, windows.ts, ipc-gate.ts, secrets.ts
   ipc/                one file per group of channels
-  providers/          Deepgram, ElevenLabs, Voxtral, Anthropic, Cerebras, OCR, vision, TTS, prompts
+  providers/          Deepgram, ElevenLabs, Voxtral, Anthropic, Cerebras, OpenAI-compatible, OCR, vision, TTS, prompts
   services/           dictation state machine, UI Automation client, context, output guard,
                       personalization, insights, notes, paste/copy/undo (Win32), mouse hook
   db/                 SQLite history
@@ -53,7 +53,7 @@ Pure logic lives in `*-core.ts` files that import neither Electron nor the `@sha
 4. The badge streams raw PCM (no browser noise suppression, which hurts recognition), buffered until the speech engine is ready.
 5. On stop, the audio goes to Deepgram (whole file by default), or ElevenLabs Scribe or Mistral Voxtral.
 6. If text is selected, a tiny classifier call decides whether the dictation is an instruction for the selection or text to insert.
-7. Cleanup: one Claude Haiku pass with the app's tone, the dictionary, the detected language, the text around the cursor, the last sentences written in that window, and the writing profile. Without an Anthropic key: Cerebras, otherwise the raw transcript.
+7. Cleanup: one pass with the app's tone, the dictionary, the detected language, the text around the cursor, the last sentences written in that window, and the writing profile. The model is the one chosen in Settings: an OpenAI-compatible model (DeepSeek, Ollama…) if one is configured, otherwise Claude Haiku, otherwise Cerebras. If that call fails (a failure, not a rejection by the output guard), Cerebras takes over when its key is set and time remains. With no cleanup engine, the raw transcript.
 8. Output guard (local): rejects a translation, an answer instead of a cleanup, a changed number or link, an empty or oversized output. Rejected means raw transcript, with the reason saved.
 9. Dictionary and expansions, then spacing joined with the existing text.
 10. Paste with Ctrl+V. If focus does not come back, the text stays in the clipboard and the badge says so.
