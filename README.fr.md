@@ -49,7 +49,7 @@ Liste complète : [SECURITY.md](SECURITY.md).
 
 ## Démarrer
 
-Il faut Windows 10 ou 11, [Node.js](https://nodejs.org) 22.5 ou plus, une clé [Deepgram](https://deepgram.com) (transcription) et une clé [Anthropic](https://console.anthropic.com) (nettoyage ; sans elle, Cyphed colle la transcription brute).
+Il faut Windows 10 ou 11, [Node.js](https://nodejs.org) 22.5 ou plus, une clé [Deepgram](https://deepgram.com) (transcription) et une clé [Anthropic](https://console.anthropic.com) (nettoyage ; sans elle, un modèle compatible OpenAI réglé dans les Réglages ou une clé Cerebras prend le relais, et sans aucun des deux, Cyphed colle la transcription brute).
 
 ```powershell
 git clone https://github.com/bendee1/cyphed.git
@@ -60,7 +60,7 @@ npm run dev
 
 Ouvre **Réglages** dans le Hub, colle tes clés, puis appuie sur `Ctrl + Maj + Espace` dans n'importe quel champ de texte et parle. Les clés peuvent aussi venir des variables d'environnement `DEEPGRAM_API_KEY` et `ANTHROPIC_API_KEY`.
 
-Construire l'application et l'installeur (non signés : SmartScreen avertit) : `npm run dist`. En option, depuis les sources : `npm run build:voice` prépare une voix française hors ligne (environ 1 Go, il faut [uv](https://docs.astral.sh/uv/)) ; elle n'est pas dans l'installeur.
+Construire l'application et l'installeur (non signés : SmartScreen avertit) : `npm run dist`. En option, depuis les sources : `npm run build:voice` prépare une voix française hors ligne (environ 1 Go, il faut [uv](https://docs.astral.sh/uv/)) ; elle n'est pas dans l'installeur, mais l'appli installée s'en sert aussi quand `CYPHED_VOICE_DIR` pointe vers elle.
 
 ## Développement
 

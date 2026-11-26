@@ -76,7 +76,7 @@ Full list in [SECURITY.md](SECURITY.md).
 
 ## Get started
 
-Requirements: Windows 10 or 11, [Node.js](https://nodejs.org) 22.5 or later, a [Deepgram](https://deepgram.com) API key (speech to text) and an [Anthropic](https://console.anthropic.com) API key (cleanup; without it Cyphed pastes the raw transcript).
+Requirements: Windows 10 or 11, [Node.js](https://nodejs.org) 22.5 or later, a [Deepgram](https://deepgram.com) API key (speech to text) and an [Anthropic](https://console.anthropic.com) API key (cleanup; without it, an OpenAI-compatible model set in Settings or a Cerebras key takes over, and with none of them Cyphed pastes the raw transcript).
 
 ```powershell
 git clone https://github.com/bendee1/cyphed.git
@@ -93,7 +93,7 @@ Build the Windows app and installer (unsigned, so SmartScreen will warn):
 npm run dist
 ```
 
-Optional, when running from source: `npm run build:voice` prepares an offline French voice (about 1 GB, needs [uv](https://docs.astral.sh/uv/)). It is not part of the installer.
+Optional, when running from source: `npm run build:voice` prepares an offline French voice (about 1 GB, needs [uv](https://docs.astral.sh/uv/)). It is not part of the installer; the installed app uses it too when `CYPHED_VOICE_DIR` points to it.
 
 ## Development
 
