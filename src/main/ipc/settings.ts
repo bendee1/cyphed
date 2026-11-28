@@ -46,6 +46,7 @@ function parseSettings(raw: unknown): AppSettings | null {
     historyDays: parseHistoryDays(value.historyDays),
     ...parseMicAndLevel(value),
     sttEngine: parseSttEngine(value.sttEngine),
+    liveCaption: value.liveCaption !== false,
     uiLanguage: parseUiLanguage(value.uiLanguage),
     ...parseCleanupModel(value)
   }

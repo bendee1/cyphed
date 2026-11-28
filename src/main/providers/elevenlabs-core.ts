@@ -1,7 +1,9 @@
 import { tm } from '../lang.ts'
-// Scribe v2 Realtime d'ElevenLabs : logique pure (paramètres, messages), testable sans réseau.
+// Scribe v3 Live d'ElevenLabs : logique pure (paramètres, messages), testable sans réseau.
 
-export const SCRIBE_MODEL = 'scribe_v2_realtime'
+export const SCRIBE_MODEL = 'scribe_v3_live'
+/** Scribe en fichier entier (une requête à la fin). */
+export const SCRIBE_FILE_MODEL = 'scribe_v3'
 export const SCRIBE_URL = 'wss://api.elevenlabs.io/v1/speech-to-text/realtime'
 /** Limites de Scribe Realtime pour les mots à mieux reconnaître. */
 const MAX_KEYTERMS = 50

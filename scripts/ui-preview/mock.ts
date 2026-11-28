@@ -88,7 +88,36 @@ const insights: Insights = {
 }
 
 const noop = (): void => undefined
-const phase = (params.get('phase') ?? 'hidden') as BarState['phase'] | 'processing-msg' | 'listening-mute'
+const phase = (params.get('phase') ?? 'hidden') as BarState['phase'] | 'processing-msg' | 'listening-mute' | 'caption'
+
+// `?phase=caption` : une dictée rejouée en boucle avec le texte en direct (une correction au milieu).
+const CAPTION_SCRIPT: Array<[number, string]> = [
+  [250, 'Écoute,'],
+  [520, 'Écoute, on'],
+  [700, 'Écoute, on va'],
+  [900, "Écoute, on va s'arrêter"],
+  [1250, "Écoute, on va s'arrêter là."],
+  [1700, "Écoute, on va s'arrêter là. Mais"],
+  [1900, "Écoute, on va s'arrêter là. Mais juste"],
+  [2120, "Écoute, on va s'arrêter là. Mais juste un"],
+  [2250, "Écoute, on va s'arrêter là. Mais juste un jour"],
+  [2400, "Écoute, on va s'arrêter là. Mets juste à jour"],
+  [2550, "Écoute, on va s'arrêter là. Mets juste à jour l'agent,"],
+  [2850, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai"],
+  [3000, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus"],
+  [3250, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de,"],
+  [3400, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de"],
+  [3600, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit"],
+  [3900, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là,"],
+  [4150, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en"],
+  [4450, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai"],
+  [4800, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai demain."]
+]
+const CAPTION_LISTEN_END = 5000
+const CAPTION_DONE = 5900
+const CAPTION_LOOP = 8500
+const captionStart = performance.now()
+const captionClock = (): number => (performance.now() - captionStart) % CAPTION_LOOP
 
 const api: Record<string, unknown> = {
   getStatus: async () => ({ hotkey: 'Control+Shift+Space', language: 'multi', cerebras: true, anthropic: true, deepgram: true, mistral: false, elevenlabs: false, mock: false, count: rows.length, words: 0, stats: emptyHubStats(), update: params.get('update') }),
@@ -111,8 +140,28 @@ const api: Record<string, unknown> = {
   readerSpeaking: async () => false,
   setInteractive: noop,
   setHitRect: noop,
+  onBarCaption: (handler: (text: string) => void) => {
+    if (phase !== 'caption') return noop
+    let last = ''
+    const timer = window.setInterval(() => {
+      const t = captionClock()
+      const step = [...CAPTION_SCRIPT].reverse().find(([at]) => at <= t)
+      const next = t < CAPTION_DONE && step ? step[1] : ''
+      if (next !== last) handler((last = next))
+    }, 30)
+    return () => window.clearInterval(timer)
+  },
   onBarState: (handler: (s: BarState) => void) => {
     if (phase === 'hidden') return noop
+    if (phase === 'caption') {
+      const timer = window.setInterval(() => {
+        const t = captionClock()
+        const listening = t < CAPTION_LISTEN_END
+        const speech = 0.03 + 0.1 * Math.max(0, Math.sin(t / 37) * 0.5 + Math.sin(t / 91) * 0.5)
+        handler(listening ? { phase: 'listening', level: speech } : t < CAPTION_DONE ? { phase: 'processing', level: 0 } : { phase: 'hidden', level: 0 })
+      }, 50)
+      return () => window.clearInterval(timer)
+    }
     if (phase === 'processing-msg') {
       handler({ phase: 'processing', level: 0, message: text('bar.slow') })
       return noop

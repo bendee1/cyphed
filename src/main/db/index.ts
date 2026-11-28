@@ -3,7 +3,7 @@ import { stampForFile } from '../services/json-file.ts'
 import { join } from 'node:path'
 import type { ActivityRecord, HubStats } from '../../shared/types.ts'
 import { ACTIVITY_STATS_PERIOD_DAYS } from '../../shared/types.ts'
-import { legacyProjectUserDataDir, userDataDir } from '../paths.ts'
+import { userDataDir } from '../paths.ts'
 import { importJsonlHistory } from './jsonl-import'
 import { importLegacyHistory } from './legacy'
 import { activityBind, INSERT_ACTIVITY_SQL, migrateToActivities } from './migrate'
@@ -89,14 +89,12 @@ function buildActivitiesDb(sqlite: SqliteConn): { api: ActivitiesDb; conn: Sqlit
   } catch (err) {
     console.warn('[db] legacy import skipped', err)
   }
-  const jsonlFiles = [join(userDataDir(), 'dictations.jsonl'), join(legacyProjectUserDataDir(), 'dictations.jsonl')]
-  for (const file of jsonlFiles) {
-    try {
-      const n = importJsonlHistory(sqlite, file)
-      if (n) console.log(`[db] import jsonl: ${n} depuis ${file}`)
-    } catch (err) {
-      console.warn('[db] jsonl import skipped', err)
-    }
+  const jsonl = join(userDataDir(), 'dictations.jsonl')
+  try {
+    const n = importJsonlHistory(sqlite, jsonl)
+    if (n) console.log(`[db] import jsonl: ${n} depuis ${jsonl}`)
+  } catch (err) {
+    console.warn('[db] jsonl import skipped', err)
   }
 
   const insert = sqlite.prepare(INSERT_ACTIVITY_SQL)
@@ -209,8 +207,6 @@ export function getDb(): ActivitiesDb {
   if (db) return db
   const dir = userDataDir()
   const path = join(dir, 'cyphed.db')
-  const legacy = join(dir, 'omaxvox.db')
-  if (!existsSync(path) && existsSync(legacy)) renameSync(legacy, path)
   try {
     const opened = openActivitiesDb(path)
     db = opened.api

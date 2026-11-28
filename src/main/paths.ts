@@ -2,7 +2,6 @@ import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { migrateLegacyUserFiles } from './db/user-files.ts'
 
 const require = createRequire(import.meta.url)
 
@@ -37,10 +36,6 @@ export function brandIconPath(): string {
   return app?.isPackaged ? join(process.resourcesPath, 'brand', 'cyphed.ico') : join(projectRoot(), 'assets', 'brand', 'cyphed.ico')
 }
 
-export function legacyProjectUserDataDir(): string {
-  return join(projectRoot(), 'user-data')
-}
-
 export function userDataDir(): string {
   if (userDataOverride) {
     mkdirSync(userDataOverride, { recursive: true })
@@ -53,10 +48,6 @@ export function userDataDir(): string {
   const dir = app.getPath('userData')
   mkdirSync(dir, { recursive: true })
   return dir
-}
-
-export function migrateUserDataToAppData(): string[] {
-  return migrateLegacyUserFiles(legacyProjectUserDataDir(), userDataDir())
 }
 
 export function loadDotEnv(): void {

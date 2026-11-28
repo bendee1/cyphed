@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
 import { DeepgramFileSttProvider, DeepgramSttProvider, isRetryableSttError, MockSttProvider, transcribeWav } from '../providers/deepgram'
 import { ElevenLabsSttProvider, ScribeFileSttProvider, transcribeWavScribe } from '../providers/elevenlabs'
+import { withLiveCaption } from '../providers/live-caption-core'
 import { transcribeWavVoxtral, VoxtralFileSttProvider } from '../providers/voxtral'
 import { buildKeyterms } from '../providers/keyterms'
 import { extractScreenTerms } from './screen-terms-core'
@@ -50,6 +51,19 @@ function ramMb(): number {
 }
 
 export class DictationService {
+  /** Nouvelle dictée : efface la bulle et rend la fonction qui y écrit, valable pour cette dictée seulement. */
+  private captionSink(): (text: string) => void {
+    const gen = ++this.captionGen
+    this.sendCaption('')
+    return (text) => {
+      if (gen === this.captionGen) this.sendCaption(text)
+    }
+  }
+
+  private sendCaption(text: string): void {
+    if (!this.bar.isDestroyed()) this.bar.webContents.send(IPC.barCaption, text)
+  }
+
   private readonly machine: DictationMachine
   private readonly provider: SttProvider
   private readonly scribeLive = new ElevenLabsSttProvider()
@@ -57,6 +71,8 @@ export class DictationService {
   private readonly voxtral = new VoxtralFileSttProvider()
   private readonly deepgramFile = new DeepgramFileSttProvider()
   private lastText = ''
+  /** Numéro de la dictée dont le texte en direct a droit à la barre : un message en retard d'une dictée finie est ignoré. */
+  private captionGen = 0
   private readonly anthropic = new AnthropicCleanupProvider()
   private readonly cerebras = new CerebrasCleanupProvider()
   private readonly openai = new OpenAiCompatCleanupProvider()
@@ -89,10 +105,18 @@ export class DictationService {
         }
         // La lecture de l'écran (quelques dizaines de ms) passe avant l'ouverture, plafonnée : le micro démarre pendant ce temps.
         const screen = context ? await Promise.race([context, new Promise<null>((r) => setTimeout(() => r(null), 250))]).catch(() => null) : null
-        const options = { language, signal, keyterms: buildKeyterms(dictionaryTerms(loadPersonalization()), screen?.screenTerms ?? []) }
+        // Chaque dictée vide la bulle et invalide les messages en retard de la précédente, même sans texte en direct.
+        const sink = this.captionSink()
+        const caption = (engine === 'elevenlabs' || engine === 'elevenlabs_live') && loadSettings().liveCaption ? sink : undefined
+        const options = { language, signal, keyterms: buildKeyterms(dictionaryTerms(loadPersonalization()), screen?.screenTerms ?? []), onCaption: caption }
         if (engine === 'deepgram') return this.provider.open(options)
         if (engine === 'deepgram_file') return this.deepgramFile.open(options)
         try {
+          if (engine === 'elevenlabs' && caption) {
+            // Le texte collé vient du fichier entier ; Scribe en direct ne sert qu'à afficher les mots pendant la dictée.
+            const base = await this.scribeFile.open(options)
+            return withLiveCaption(base, () => this.scribeLive.open(options), (m) => console.warn('[caption]', m))
+          }
           const other = engine === 'elevenlabs_live' ? this.scribeLive : engine === 'voxtral' ? this.voxtral : this.scribeFile
           return await other.open(options)
         } catch (err) {

@@ -73,6 +73,8 @@ async function fetchMistralMp3(text: string, voice: VoiceRef, signal: AbortSigna
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
+    // 402 : le compte Mistral n'a pas de budget API, la voix est refusée (le reste de Mistral peut marcher).
+    if (res.status === 402) throw new Error(tm('prov.tts.mistralBilling'))
     throw new Error(`Mistral TTS ${res.status} ${body.slice(0, 180)}`)
   }
   const type = res.headers.get('content-type') ?? ''

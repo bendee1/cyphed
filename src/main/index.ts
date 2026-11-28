@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { app, dialog, globalShortcut, Notification, session, type BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { DEFAULT_SETTINGS } from '@shared/types'
-import { loadDotEnv, migrateUserDataToAppData, userDataDir } from './paths'
+import { loadDotEnv, userDataDir } from './paths'
 import { sanitizeMetricsFile } from './services/usage'
 import { IpcGate, sameDocument } from './ipc-gate'
 import { getCerebrasKey, getDeepgramKey } from './secrets'
@@ -105,8 +105,6 @@ async function boot(): Promise<void> {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const copied = migrateUserDataToAppData()
-  if (copied.length) console.log(`[data] AppData migration: ${copied.join(', ')}`)
   // La langue d'abord : la base et les fenêtres l'utilisent dès leur ouverture.
   applyUiLanguage(loadSettings().uiLanguage)
   const metricsScrub = sanitizeMetricsFile(join(userDataDir(), 'metrics.jsonl'))

@@ -34,6 +34,7 @@ export function loadSettings(): AppSettings {
     historyDays: parseHistoryDays(parsed.historyDays),
     ...parseMicAndLevel(parsed),
     sttEngine: parseSttEngine(parsed.sttEngine),
+    liveCaption: parsed.liveCaption !== false,
     uiLanguage: parseUiLanguage(parsed.uiLanguage),
     ...parseCleanupModel(parsed)
   }

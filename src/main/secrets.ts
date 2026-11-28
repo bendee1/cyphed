@@ -139,5 +139,5 @@ export function getElevenLabsKey(): string {
 }
 
 export function useMockStt(): boolean {
-  return process.env.CYPHED_STT_MOCK === '1' || process.env.OMAXVOX_STT_MOCK === '1'
+  return process.env.CYPHED_STT_MOCK === '1'
 }

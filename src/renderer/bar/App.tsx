@@ -3,6 +3,7 @@ import { Check, ChevronUp, PenLine, Settings2, Volume2 } from 'lucide-react'
 import type { BarReadAction, BarTransforms } from '@shared/ipc'
 import type { BarState } from '@shared/types'
 import { VoiceMark } from './VoiceMark'
+import { LiveCaption } from './LiveCaption'
 import { micErrorMessage, startMic, type MicHandle } from './mic'
 import { t, transformName } from '@/lib/i18n'
 
@@ -169,6 +170,7 @@ export function BarApp() {
 
   return (
     <div className="shell visible">
+      <LiveCaption phase={state.phase} />
       <div className="dock" ref={dockRef} onPointerEnter={enter} onPointerLeave={leave}>
         {readMenu && expanded ? (
           <div className="menu" role="menu" aria-label={t('barui.read')}>

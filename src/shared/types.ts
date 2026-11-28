@@ -110,6 +110,8 @@ export type AppSettings = {
   cleanupLevel: CleanupLevel
   /** Moteur qui transcrit la voix. */
   sttEngine: SttEngine
+  /** Avec ElevenLabs : le texte s'écrit dans une bulle au-dessus de la barre pendant la dictée. */
+  liveCaption: boolean
   /** Langue de l'interface : « auto » suit la langue de Windows (français, sinon anglais). */
   uiLanguage: UiLanguageSetting
   /** Modèle qui nettoie les dictées : Claude Haiku, ou n'importe quel modèle compatible OpenAI (DeepSeek, OpenRouter, Ollama…). */
@@ -137,7 +139,7 @@ export function parseUiLanguage(value: unknown): UiLanguageSetting {
 }
 
 /**
- * Deepgram Nova-3 en fichier entier (défaut), Deepgram en flux, ElevenLabs Scribe v2 en fichier entier à la fin,
+ * Deepgram Nova-3 en fichier entier (défaut), Deepgram en flux, ElevenLabs Scribe v3 en fichier entier à la fin,
  * Scribe en temps réel, ou Voxtral de Mistral en fichier entier.
  */
 export type SttEngine = 'deepgram' | 'deepgram_file' | 'elevenlabs' | 'elevenlabs_live' | 'voxtral'
@@ -176,6 +178,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   micLabel: '',
   cleanupLevel: 'normal',
   sttEngine: 'deepgram_file',
+  liveCaption: true,
   uiLanguage: 'auto',
   cleanupEngine: 'claude',
   openaiBaseUrl: '',

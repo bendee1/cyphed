@@ -2,7 +2,7 @@ import WebSocket from 'ws'
 import { getElevenLabsKey } from '../secrets'
 import { fileSession } from './file-stt'
 import type { LiveSttSession, SttOpenOptions, SttProvider } from './stt'
-import { audioChunk, dropFalseStarts, finalSettled, foldScribe, SCRIBE_MODEL, SCRIBE_URL, scribeError, scribeQuery, scribeText, type ScribeFold, type ScribeMessage } from './elevenlabs-core'
+import { audioChunk, dropFalseStarts, finalSettled, foldScribe, SCRIBE_FILE_MODEL, SCRIBE_MODEL, SCRIBE_URL, scribeError, scribeQuery, scribeText, type ScribeFold, type ScribeMessage } from './elevenlabs-core'
 import { tm } from '../lang'
 
 const CLOSE_TIMEOUT_MS = 1500
@@ -49,7 +49,7 @@ function abortError(): Error {
   return Object.assign(new Error('aborted'), { name: 'AbortError' })
 }
 
-/** Scribe v2 Realtime : l'audio part pendant la dictée, le texte arrive ~150 ms après la fin. */
+/** Scribe v3 Live : l'audio part pendant la dictée, le texte arrive ~150 ms après la fin. */
 export class ElevenLabsSttProvider implements SttProvider {
   async open(options?: SttOpenOptions): Promise<LiveSttSession> {
     const key = getElevenLabsKey()
@@ -111,6 +111,7 @@ export class ElevenLabsSttProvider implements SttProvider {
         const msg = JSON.parse(String(raw)) as ScribeMessage
         fold = foldScribe(fold, msg)
         for (const listener of listeners) listener(msg)
+        if (msg.message_type === 'partial_transcript' || msg.message_type === 'committed_transcript') options?.onCaption?.(scribeText(fold))
       } catch {
         // message non JSON ignoré
       }
@@ -164,7 +165,7 @@ export class ElevenLabsSttProvider implements SttProvider {
   }
 }
 
-/** Transcrit un fichier WAV gardé (bouton Réessayer) avec Scribe v2, en une requête. */
+/** Transcrit un fichier WAV gardé (bouton Réessayer) avec Scribe v3, en une requête. */
 export async function transcribeWavScribe(
   wav: Buffer,
   options: { language: string; keyterms?: string[]; timeoutMs?: number }
@@ -173,7 +174,7 @@ export async function transcribeWavScribe(
   if (!key) throw new Error(tm('prov.eleven.noKeyShort'))
   const form = new FormData()
   form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'dictee.wav')
-  form.append('model_id', 'scribe_v2')
+  form.append('model_id', SCRIBE_FILE_MODEL)
   form.append('tag_audio_events', 'false')
   if (options.language && options.language !== 'multi') form.append('language_code', options.language)
   for (const term of scribeQuery('multi', options.keyterms ?? []).getAll('keyterms')) form.append('keyterms', term)
@@ -196,13 +197,13 @@ export async function transcribeWavScribe(
 }
 
 /**
- * Scribe v2 en fichier entier : l'audio est gardé pendant la dictée et transcrit d'un coup à la fin.
+ * Scribe v3 en fichier entier : l'audio est gardé pendant la dictée et transcrit d'un coup à la fin.
  * Clé refusée ou crédit épuisé : le même audio part à Deepgram.
  */
 export class ScribeFileSttProvider implements SttProvider {
   async open(options?: SttOpenOptions): Promise<LiveSttSession> {
     if (options?.signal?.aborted) throw abortError()
     if (!getElevenLabsKey()) throw new Error(tm('prov.eleven.noKey'))
-    return fileSession('elevenlabs', 'scribe_v2', options, transcribeWavScribe)
+    return fileSession('elevenlabs', SCRIBE_FILE_MODEL, options, transcribeWavScribe)
   }
 }

@@ -504,6 +504,29 @@ export function SettingsPanel({
         <small>{t(`set.stt.hint.${draft.settings.sttEngine}`)}</small>
       </fieldset>
 
+      {draft.settings.sttEngine === 'elevenlabs' || draft.settings.sttEngine === 'elevenlabs_live' ? (
+        <fieldset className="hub-field">
+          <legend>{t('set.caption.legend')}</legend>
+          <div className="hub-seg">
+            {[
+              { id: true, label: t('set.caption.yes') },
+              { id: false, label: t('set.caption.no') }
+            ].map((item) => (
+              <button
+                key={String(item.id)}
+                type="button"
+                aria-pressed={draft.settings.liveCaption === item.id}
+                className={draft.settings.liveCaption === item.id ? 'is-on' : undefined}
+                onClick={() => patchSettings({ liveCaption: item.id })}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <small>{t(draft.settings.sttEngine === 'elevenlabs' ? 'set.caption.hint.file' : 'set.caption.hint.live')}</small>
+        </fieldset>
+      ) : null}
+
       <fieldset className="hub-field">
         <legend>{t('set.mode.legend')}</legend>
         <div className="hub-seg">

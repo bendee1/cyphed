@@ -3,6 +3,7 @@ import type { ActivityRecord, AppSettings, BarState, HubStats, Insights, Persona
 export const IPC = {
   barState: 'bar:state',
   barCommand: 'bar:command',
+  barCaption: 'bar:caption',
   barInteractive: 'bar:interactive',
   barHitRect: 'bar:hit-rect',
   barToggle: 'bar:toggle',
@@ -154,6 +155,8 @@ export type CaptureInit = {
 export type BarPreloadApi = {
   onBarState: (handler: (state: BarState) => void) => () => void
   onBarCommand: (handler: (command: BarCommand) => void) => () => void
+  /** Texte entendu pendant la dictée (ElevenLabs en direct), réécrit à chaque message ; vide = effacer. */
+  onBarCaption: (handler: (text: string) => void) => () => void
   sendAudioFrame: (pcm: ArrayBuffer) => void
   sendAudioLevel: (level: number) => void
   sendMicReady: () => void

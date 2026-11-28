@@ -18,6 +18,8 @@ export type SttOpenOptions = {
   /** Mots à mieux reconnaître (noms propres, marques, termes de la personne). */
   keyterms?: string[]
   signal?: AbortSignal
+  /** Texte entendu jusqu'ici (validé + provisoire), à chaque message du moteur en direct. Pour l'affichage seulement. */
+  onCaption?: (text: string) => void
 }
 
 export interface SttProvider {

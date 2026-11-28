@@ -5,7 +5,7 @@ import { audioChunk, dropFalseStarts, finalSettled, foldScribe, scribeError, scr
 describe('Scribe Realtime', () => {
   it('se connecte en français, commit manuel, mot à mot, avec les mots de la personne', () => {
     const q = scribeQuery('fr', ['Cyphed', 'Studio Nova', 'un terme bien trop long pour Scribe', 'cyphed'])
-    assert.equal(q.get('model_id'), 'scribe_v2_realtime')
+    assert.equal(q.get('model_id'), 'scribe_v3_live')
     assert.equal(q.get('language_code'), 'fr')
     assert.equal(q.get('commit_strategy'), 'manual')
     assert.equal(q.get('audio_format'), 'pcm_16000')

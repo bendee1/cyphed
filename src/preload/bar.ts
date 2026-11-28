@@ -13,6 +13,11 @@ const api: BarPreloadApi = {
     ipcRenderer.on('bar:command', listen)
     return () => ipcRenderer.removeListener('bar:command', listen)
   },
+  onBarCaption(handler) {
+    const listen = (_event: unknown, text: string): void => handler(typeof text === 'string' ? text : '')
+    ipcRenderer.on('bar:caption', listen)
+    return () => ipcRenderer.removeListener('bar:caption', listen)
+  },
   sendAudioFrame(pcm) {
     ipcRenderer.send('audio:frame', pcm)
   },

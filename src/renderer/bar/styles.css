@@ -350,3 +350,103 @@ body {
     animation-duration: 3s;
   }
 }
+
+/* Texte en direct : bulle au-dessus de la capsule, mêmes noir, bord et rayon que la barre (une ligne = une capsule). */
+.shell {
+  position: relative;
+}
+
+.live-caption {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  box-sizing: border-box;
+  padding: 9px 18px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #0b0b0b;
+  border: 1.5px solid #262a30;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  transition:
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    width 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    height 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.live-caption.is-off {
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px) scale(0.96);
+}
+
+.live-caption-view {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.live-caption-lines {
+  transition: transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Les lignes qui remontent s'effacent sous ce dégradé. */
+.live-caption-fade {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 9px;
+  background: linear-gradient(#0b0b0b, transparent);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.live-caption.is-scrolled .live-caption-fade {
+  opacity: 1;
+}
+
+.live-caption-measure {
+  position: absolute;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.lc-word {
+  display: inline-block;
+  white-space: pre;
+  color: rgba(238, 240, 243, 0.45);
+  transition: color 260ms ease;
+  animation: lc-enter 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.lc-word.is-sure {
+  color: #eef0f3;
+}
+
+.lc-word.is-fixed {
+  color: #ff6b5c;
+  transition-duration: 120ms;
+}
+
+@keyframes lc-enter {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-caption,
+  .live-caption-lines {
+    transition: opacity 150ms ease;
+  }
+
+  .lc-word {
+    animation: none;
+  }
+}

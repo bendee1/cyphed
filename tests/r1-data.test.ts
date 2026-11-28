@@ -8,7 +8,6 @@ import { importJsonlHistory } from '../src/main/db/jsonl-import.ts'
 import { filterLegacyHistory, importLegacyHistory } from '../src/main/db/legacy.ts'
 import { insertActivity, migrateToActivities, ACTIVITIES_SCHEMA_VERSION } from '../src/main/db/migrate.ts'
 import { openSqlite, userVersion } from '../src/main/db/sqlite.ts'
-import { migrateLegacyUserFiles } from '../src/main/db/user-files.ts'
 import { readActivityStats } from '../src/main/db/stats.ts'
 import { IpcGate } from '../src/main/ipc-gate.ts'
 import { applySecretOps, publicPayloadHasRawKey, publicSecretsFrom } from '../src/main/secrets-ops.ts'
@@ -352,25 +351,6 @@ describe('R1 capture / metrics / AppData', () => {
     const second = sanitizeMetricsFile(file)
     assert.deepEqual(second, { rewritten: false, strippedLines: 0 })
     assert.equal(readFileSync(file, 'utf8'), after)
-  })
-
-  it('copies legacy user-data to AppData once and stays idempotent', () => {
-    const src = tempDir('cyphed-src-')
-    const dest = tempDir('cyphed-dest-')
-    writeFileSync(join(src, 'settings.json'), '{"hotkey":"Control+Shift+Space"}')
-    writeFileSync(join(src, 'secrets.json'), '{"deepgram":"DG"}')
-    writeFileSync(join(src, 'metrics.jsonl'), '{"sessionId":"1"}\n')
-    writeFileSync(join(src, 'cyphed.db'), 'sqlite')
-    const first = migrateLegacyUserFiles(src, dest)
-    assert.ok(first.includes('cyphed.db'))
-    assert.ok(first.includes('settings.json'))
-    assert.ok(first.includes('secrets.json'))
-    assert.equal(readFileSync(join(dest, 'secrets.json'), 'utf8'), '{"deepgram":"DG"}')
-    writeFileSync(join(src, 'secrets.json'), '{"deepgram":"CHANGED"}')
-    const second = migrateLegacyUserFiles(src, dest)
-    assert.deepEqual(second, [])
-    assert.equal(readFileSync(join(dest, 'secrets.json'), 'utf8'), '{"deepgram":"DG"}')
-    assert.equal(existsSync(join(src, 'secrets.json')), true)
   })
 
   it('imports leftover jsonl into activities without using it as a live DB', () => {
