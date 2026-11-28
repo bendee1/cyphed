@@ -47,6 +47,7 @@
   "build": {
     "appId": "app.cyphed.desktop",
     "productName": "Cyphed",
+    "electronDist": "node_modules/electron/dist",
     "copyright": "Cyphed",
     "files": [
       "out/**/*",
