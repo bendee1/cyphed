@@ -18,6 +18,11 @@ const api: BarPreloadApi = {
     ipcRenderer.on('bar:caption', listen)
     return () => ipcRenderer.removeListener('bar:caption', listen)
   },
+  onBarScale(handler) {
+    const listen = (_event: unknown, scale: number): void => handler(typeof scale === 'number' && scale >= 1 && scale <= 2 ? scale : 1)
+    ipcRenderer.on('bar:scale', listen)
+    return () => ipcRenderer.removeListener('bar:scale', listen)
+  },
   sendAudioFrame(pcm) {
     ipcRenderer.send('audio:frame', pcm)
   },

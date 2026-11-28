@@ -4,6 +4,8 @@ import { BrowserWindow, screen } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { brandIconPath, projectRoot } from './paths'
 import { mainLang } from './lang'
+import { IPC } from '@shared/ipc'
+import { BAR_BASE_HEIGHT, BAR_BASE_WIDTH, barWindowSize, captionScale } from './services/bar-size-core'
 
 let quitting = false
 
@@ -67,9 +69,10 @@ export function reloadOpenWindows(): void {
 
 export async function createBarWindow(preload: string): Promise<BrowserWindow> {
   const win = new BrowserWindow({
-    width: 340,
-    // Assez haut pour le menu Lire (5 lignes) ; la fenêtre laisse passer les clics hors de la pilule.
-    height: 310,
+    // Assez haute pour le menu Lire (5 lignes), élargie selon l'écran à chaque affichage (placeBar) ;
+    // la fenêtre laisse passer les clics hors de la pilule.
+    width: BAR_BASE_WIDTH,
+    height: BAR_BASE_HEIGHT,
     show: false,
     frame: false,
     transparent: true,
@@ -96,17 +99,29 @@ export async function createBarWindow(preload: string): Promise<BrowserWindow> {
   // Sans `forward` : Electron poserait un crochet souris global dans le fil principal (gel de la souris
   // dès que Cyphed est occupé). Le survol est suivi par ipc/bar.ts.
   win.setIgnoreMouseEvents(true)
+  // Page rechargée (langue, plantage) : elle reprend l'échelle de l'écran courant.
+  win.webContents.on('did-finish-load', () => {
+    if (lastScale) win.webContents.send(IPC.barScale, lastScale)
+  })
   await loadPage(win, 'bar')
   return win
 }
 
+let lastScale = 0
+
 function placeBar(win: BrowserWindow): void {
   const cursor = screen.getCursorScreenPoint()
   const display = screen.getDisplayNearestPoint(cursor)
-  const { width, height } = win.getBounds()
+  // La bulle du texte en direct grandit avec l'écran où la barre s'affiche (recalculé à chaque affichage).
+  const scale = captionScale(display.size.height)
+  const { width, height } = barWindowSize(scale)
   const x = Math.round(display.workArea.x + (display.workArea.width - width) / 2)
   const y = Math.round(display.workArea.y + display.workArea.height - height - 4)
-  win.setPosition(x, y, false)
+  win.setBounds({ x, y, width, height }, false)
+  if (scale !== lastScale) {
+    lastScale = scale
+    win.webContents.send(IPC.barScale, scale)
+  }
 }
 
 export function showBar(win: BrowserWindow): void {

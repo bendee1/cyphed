@@ -147,6 +147,12 @@ const api: Record<string, unknown> = {
   readerSpeaking: async () => false,
   setInteractive: noop,
   setHitRect: noop,
+  // `?scale=1.33` : bulle agrandie comme sur un écran 1440p à 100 %.
+  onBarScale: (handler: (scale: number) => void) => {
+    const scale = Number(params.get('scale'))
+    if (scale >= 1) handler(scale)
+    return noop
+  },
   onBarCaption: (handler: (text: string) => void) => {
     if (phase !== 'caption') return noop
     let last = ''

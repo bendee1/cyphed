@@ -4,6 +4,7 @@ export const IPC = {
   barState: 'bar:state',
   barCommand: 'bar:command',
   barCaption: 'bar:caption',
+  barScale: 'bar:scale',
   barInteractive: 'bar:interactive',
   barHitRect: 'bar:hit-rect',
   barToggle: 'bar:toggle',
@@ -157,6 +158,8 @@ export type BarPreloadApi = {
   onBarCommand: (handler: (command: BarCommand) => void) => () => void
   /** Texte entendu pendant la dictée (ElevenLabs en direct), réécrit à chaque message ; vide = effacer. */
   onBarCaption: (handler: (text: string) => void) => () => void
+  /** Agrandissement de la bulle selon l'écran (1 = 1080 px de haut, au plus 1,4). */
+  onBarScale: (handler: (scale: number) => void) => () => void
   sendAudioFrame: (pcm: ArrayBuffer) => void
   sendAudioLevel: (level: number) => void
   sendMicReady: () => void

@@ -2,15 +2,33 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BarState } from '@shared/types'
 import { EMPTY_CAPTION, foldCaption, wordFixed, wordSure, type Caption } from './caption-core'
 
-/** Hauteur d'une ligne, largeur maximale de la bulle, marges intérieures (bord compris). */
-const LINE = 20
 /** Lignes visibles avant que les plus anciennes remontent : une dictée normale tient en entier. */
 const MAX_LINES = 4
-const MAX_WIDTH = 300
-const MIN_WIDTH = 60
-const PAD_X = 39
-const PAD_Y = 21
-const INNER = MAX_WIDTH - PAD_X
+const BORDER = 1.5
+
+/**
+ * Mesures de la bulle à une échelle donnée (1 = écran de 1080 px de haut) : police, ligne, marges, largeurs.
+ * Valeurs arrondies au pixel pour garder un texte net.
+ */
+function captionSize(scale: number) {
+  const line = Math.round(20 * scale)
+  const padY = Math.round(9 * scale)
+  const padX = Math.round(18 * scale)
+  const maxWidth = Math.round(300 * scale)
+  return {
+    font: Math.round(14 * scale * 2) / 2,
+    line,
+    padY,
+    padX,
+    radius: Math.round(20 * scale),
+    maxWidth,
+    minWidth: Math.round(60 * scale),
+    /** Marges et bords en largeur et en hauteur. */
+    extraX: 2 * padX + 2 * BORDER,
+    extraY: 2 * padY + 2 * BORDER,
+    inner: maxWidth - 2 * padX - 2 * BORDER
+  }
+}
 
 type Box = { width: number; lines: number; shift: number }
 
@@ -22,7 +40,9 @@ type Box = { width: number; lines: number; shift: number }
 export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
   const [caption, setCaption] = useState<Caption>(EMPTY_CAPTION)
   const [now, setNow] = useState(() => performance.now())
-  const [box, setBox] = useState<Box>({ width: MIN_WIDTH, lines: 1, shift: 0 })
+  const [scale, setScale] = useState(1)
+  const size = captionSize(scale)
+  const [box, setBox] = useState<Box>({ width: size.minWidth, lines: 1, shift: 0 })
   const linesRef = useRef<HTMLDivElement | null>(null)
   const measureRef = useRef<HTMLSpanElement | null>(null)
   const active = phase === 'listening' || phase === 'processing'
@@ -36,6 +56,8 @@ export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
       }),
     []
   )
+
+  useEffect(() => window.cyphed.onBarScale(setScale), [])
 
   // Les mots passent de « pas sûr » à « sûr » avec le temps, et le rouge s'éteint : petite horloge pendant la dictée.
   useEffect(() => {
@@ -57,18 +79,18 @@ export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
     if (!lines || !measure) return
     if (caption.words.length === 0) {
       // Bulle vide (cachée) : elle repart petite pour la prochaine dictée.
-      setBox((b) => (b.width === MIN_WIDTH && b.lines === 1 && b.shift === 0 ? b : { width: MIN_WIDTH, lines: 1, shift: 0 }))
+      setBox((b) => (b.width === size.minWidth && b.lines === 1 && b.shift === 0 ? b : { width: size.minWidth, lines: 1, shift: 0 }))
       return
     }
     // offsetHeight ignore les transformations : un mot qui entre (décalé de 3 px) ne fait pas sauter la hauteur.
     const height = lines.offsetHeight
-    const count = Math.max(1, Math.round(height / LINE))
+    const count = Math.max(1, Math.round(height / size.line))
     const oneLine = Math.ceil(measure.getBoundingClientRect().width)
-    const width = count > 1 || oneLine > INNER ? MAX_WIDTH : Math.max(MIN_WIDTH, oneLine + PAD_X)
+    const width = count > 1 || oneLine > size.inner ? size.maxWidth : Math.max(size.minWidth, Math.ceil(oneLine + size.extraX))
     const visible = Math.min(count, MAX_LINES)
-    const shift = Math.max(0, height - visible * LINE)
+    const shift = Math.max(0, height - visible * size.line)
     setBox((b) => (b.width === width && b.lines === visible && b.shift === shift ? b : { width, lines: visible, shift }))
-  }, [caption])
+  }, [caption, scale])
 
   const shown = active && caption.words.length > 0
   const settled = phase === 'processing'
@@ -76,11 +98,18 @@ export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
   return (
     <div
       className={`live-caption${shown ? '' : ' is-off'}${box.shift > 0 ? ' is-scrolled' : ''}`}
-      style={{ width: box.width, height: box.lines * LINE + PAD_Y }}
+      style={{
+        width: box.width,
+        height: box.lines * size.line + size.extraY,
+        padding: `${size.padY}px ${size.padX}px`,
+        borderRadius: size.radius,
+        fontSize: size.font,
+        lineHeight: `${size.line}px`
+      }}
       aria-hidden
     >
       <div className="live-caption-view">
-        <div className="live-caption-lines" ref={linesRef} style={{ width: INNER, transform: `translateY(${-box.shift}px)` }}>
+        <div className="live-caption-lines" ref={linesRef} style={{ width: size.inner, transform: `translateY(${-box.shift}px)` }}>
           {caption.words.map((word, i) => (
             <span key={`${word.key}:${word.text}`}>
               {i > 0 ? ' ' : null}
