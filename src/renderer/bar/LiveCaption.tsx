@@ -3,7 +3,9 @@ import type { BarState } from '@shared/types'
 import { EMPTY_CAPTION, foldCaption, wordFixed, wordSure, type Caption } from './caption-core'
 
 /** Hauteur d'une ligne, largeur maximale de la bulle, marges intérieures (bord compris). */
-const LINE = 19
+const LINE = 20
+/** Lignes visibles avant que les plus anciennes remontent : une dictée normale tient en entier. */
+const MAX_LINES = 4
 const MAX_WIDTH = 300
 const MIN_WIDTH = 60
 const PAD_X = 39
@@ -15,7 +17,7 @@ type Box = { width: number; lines: number; shift: number }
 /**
  * Bulle au-dessus de la barre : le texte entendu s'écrit pendant la dictée (ElevenLabs).
  * Gris ivoire = mot pas encore sûr, blanc = validé, rouge un instant = mot corrigé par le moteur.
- * Une ligne : la bulle épouse le texte ; deux lignes au plus, les plus anciennes remontent et s'effacent.
+ * Une ligne : la bulle épouse le texte ; quatre lignes au plus, les plus anciennes remontent et s'effacent.
  */
 export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
   const [caption, setCaption] = useState<Caption>(EMPTY_CAPTION)
@@ -63,7 +65,7 @@ export function LiveCaption({ phase }: { phase: BarState['phase'] }) {
     const count = Math.max(1, Math.round(height / LINE))
     const oneLine = Math.ceil(measure.getBoundingClientRect().width)
     const width = count > 1 || oneLine > INNER ? MAX_WIDTH : Math.max(MIN_WIDTH, oneLine + PAD_X)
-    const visible = Math.min(count, 2)
+    const visible = Math.min(count, MAX_LINES)
     const shift = Math.max(0, height - visible * LINE)
     setBox((b) => (b.width === width && b.lines === visible && b.shift === shift ? b : { width, lines: visible, shift }))
   }, [caption])

@@ -111,11 +111,18 @@ const CAPTION_SCRIPT: Array<[number, string]> = [
   [3900, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là,"],
   [4150, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en"],
   [4450, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai"],
-  [4800, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai demain."]
+  [4800, "Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai demain."],
+  // Suite plus longue : on voit la bulle grandir jusqu'à 4 lignes, puis remonter.
+  ...'Et euh, note aussi que la bulle doit montrer quatre lignes, pas deux, pour que je puisse relire le début quand j’hésite.'
+    .split(' ')
+    .map((_, i, words): [number, string] => [
+      5050 + i * 190,
+      `Écoute, on va s'arrêter là. Mets juste à jour l'agent, j'ai plus de, de crédit là, j'en reprendrai demain. ${words.slice(0, i + 1).join(' ')}`
+    ])
 ]
-const CAPTION_LISTEN_END = 5000
-const CAPTION_DONE = 5900
-const CAPTION_LOOP = 8500
+const CAPTION_LISTEN_END = 9500
+const CAPTION_DONE = 10400
+const CAPTION_LOOP = 13000
 const captionStart = performance.now()
 const captionClock = (): number => (performance.now() - captionStart) % CAPTION_LOOP
 
